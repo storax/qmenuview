@@ -13,6 +13,10 @@ env:
     - TOXENV=3.3-nocover
     - TOXENV=3.4,coveralls
     - TOXENV=3.4-nocover
+addons:
+  apt:
+    packages:
+    - xvfb
 before_install:
   - python --version
   - virtualenv --version
@@ -22,6 +26,8 @@ before_install:
 install:
   - pip install tox
 script:
+  - Xvfb :0 -screen 0 1600x1200x24 &
+  - export DISPLAY=:0.0
   - tox -v
 notifications:
   email:
