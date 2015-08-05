@@ -5,11 +5,11 @@ import qmenuview
 
 def test_title(qtbot):
     title = 'Test title'
-    qmenuview.MenuView(title)
-    assert qmenuview.title() == title
+    mv = qmenuview.MenuView(title)
+    assert mv.title() == title
 
 
 def test_parent(qtbot):
     p = QtGui.QWidget()
-    qmenuview.MenuView(parent=p)
-    assert qmenuview.parent() is p
+    mv = qmenuview.MenuView(parent=p)
+    assert mv.parent() is p
