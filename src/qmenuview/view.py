@@ -2,6 +2,7 @@ import functools
 
 from PySide import QtCore, QtGui
 
+__all__ = ['MenuView']
 
 class MenuView(QtGui.QMenu):
     """A view that creates submenus based on a model
