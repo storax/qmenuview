@@ -2,6 +2,8 @@ language: python
 python: 2.7
 env:
   global:
+    PIP_INDEX_URL=https://storax.github.io/travis-pyside-test/simple/
+    PIP_EXTRA_INDEX_URL=https://pypi.python.org/simple
     LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
   matrix:
     - TOXENV=check
