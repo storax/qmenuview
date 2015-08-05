@@ -4,7 +4,7 @@ from PySide import QtCore, QtGui
 
 
 class MenuView(QtGui.QMenu):
-    """A view that creates submenues based on a model
+    """A view that creates submenus based on a model
     """
 
     hovered = QtCore.Signal(QtCore.QModelIndex)
@@ -23,10 +23,11 @@ class MenuView(QtGui.QMenu):
         """
         super(MenuView, self).__init__(title, parent)
         self._model = None
-        self._menuindexmap = {self, QtCore.QModelIndex()}
+        self._menuindexmap = {self: QtCore.QModelIndex(),
+                              QtCore.QModelIndex(): self}
         self._actionindexmap = {}
         self.recursive = False
-        """If True, create submenues for treemodels."""
+        """If True, create submenus for treemodels."""
 
     @property
     def model(self, ):
@@ -48,7 +49,27 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
+        if self._model:
+            self._model.modelReset.disconnect(self.reset)
+            self._model.rowsInserted.disconnect(self.insert_menus)
+            self._model.rowsMoved.disconnect(self.move_menus)
+            self._model.rowsRemoved.disconnect(self.remove_menus)
+            self._model.dataChanged.disconnect(self.update_menus)
         self._model = model
+        model.modelReset.connect(self.reset)
+        model.rowsInserted.connect(self.insert_menus)
+        model.rowsMoved.connect(self.move_menus)
+        model.rowsRemoved.connect(self.remove_menus)
+        model.dataChanged.connect(self.update_menus)
+        self.reset()
+
+    def reset(self, ):
+        """Delete and recreate all menus
+
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
         self._delete_menus()
         self._create_menus()
 
@@ -62,14 +83,14 @@ class MenuView(QtGui.QMenu):
         for action in self.actions():
             action.deleteLater()
 
-    def _create_menues(self, ):
-        """Create all menues according to the model
+    def _create_menus(self, ):
+        """Create all menus according to the model
 
         :returns: None
         :rtype: None
         :raises: None
         """
-        pass
+        raise NotImplementedError
 
     def menu_destroyed(self, menu):
         """Remove the menu from the indexmap
@@ -129,3 +150,66 @@ class MenuView(QtGui.QMenu):
         index = self._actionindexmap.get(action)
         if index and index.isValid():
             signal.emit(index)
+
+    def insert_menus(self, parent, first, last):
+        """Create menus for rows first til last under the given parent
+
+        :param parent: The parent index
+        :type parent: :class:`QtCore.QModelIndex`
+        :param first: the first row
+        :type first: :class:`int`
+        :param last: the last row
+        :type last: :class:`int`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
+        raise NotImplementedError
+
+    def move_menus(self, parent, start, end, destination, row):
+        """Move menus between start and end under the given parent,
+        to destination starting at the given row
+
+        :param parent: The parent of the moved rows
+        :type parent: :class:`QtCore.QModelIndex`
+        :param start: the start row
+        :type start: :class:`int`
+        :param end: the last row
+        :type end: :class:`int`
+        :param destination: the parent of the destinaton
+        :type destination: :class:`QtCore.QModelIndex`
+        :param row: the row where the menus are moved to
+        :type row: :class:`int`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
+        raise NotImplementedError
+
+    def remove_menus(self, parent, first, last):
+        """Remove the menus under the given parent
+
+        :param parent: the parent of the menus
+        :type parent: :class:`QtCore.QModelIndex`
+        :param first: the first row
+        :type first: :class:`int`
+        :param last: the last row
+        :type last: :class:`int`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
+        raise NotImplementedError
+
+    def update_menus(self, topLeft, bottomRight):
+        """Update the menus from topleft index to bottomright index
+
+        :param topLeft: The top left index to update
+        :type topLeft: :class:`QtCore.QModelIndex`
+        :param bottomRight: the bottom right index to update
+        :type bottomRight: :class:`QtCore.QModelIndex`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
+        raise NotImplementedError
