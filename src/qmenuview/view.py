@@ -129,14 +129,21 @@ class MenuView(QtGui.QMenu):
         if self.recursive and m.hasChildren(index):
             parent = self._menuindexmap[index.parent()]
             newmenu = parent.addMenu(str(data))
+            action = newmenu.menuAction()
+            self._actionindexmap[action] = index
+            self._actionindexmap[index] = action
             self._menuindexmap[newmenu] = index
             self._menuindexmap[index] = newmenu
+            action.triggered.connect(functools.partial(self.action_triggered, action))
+            action.hovered.connect(functools.partial(self.action_hovered, action))
             newmenu.destroyed.connect(functools.partial(self.menu_destroyed, newmenu))
         else:
             parent = self._menuindexmap[index.parent()]
             action = parent.addAction(str(data))
             self._actionindexmap[action] = index
             self._actionindexmap[index] = action
+            action.triggered.connect(functools.partial(self.action_triggered, action))
+            action.hovered.connect(functools.partial(self.action_hovered, action))
             action.destroyed.connect(functools.partial(self.action_destroyed, action))
 
     def menu_destroyed(self, menu):
@@ -181,6 +188,8 @@ class MenuView(QtGui.QMenu):
 
         :param action: The action which emitted a hovered signal
         :type action: :class:`QtGui.QAction`
+        :param checked: True if the action was in a checked state
+        :type checked: :class:`bool`
         :returns: None
         :rtype: None
         :raises: None

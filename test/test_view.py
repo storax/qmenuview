@@ -100,10 +100,8 @@ def test_flatten_hierarchy(treemodel):
             assert index.column() == 0
 
 
-def test_menus_created(treemodel):
-    mv = qmenuview.MenuView()
-    mv.model = treemodel
-    for i, a in enumerate(mv.actions()):
+def test_menus_created(loadedview):
+    for i, a in enumerate(loadedview.actions()):
         assert a.text() == 'testrow%s:0' % i
         for j, ca in enumerate(a.menu().actions()):
             assert ca.text() == 'testrow%s:%s' % (i, j)
@@ -116,3 +114,27 @@ def test_menus_created_not_recursive(treemodel):
     for i, a in enumerate(mv.actions()):
         assert a.text() == 'testrow%s:0' % i
         assert a.menu() is None
+
+
+def test_menu_action_triggered(qtbot, loadedview):
+    with qtbot.waitSignal(loadedview.triggered, raising=True):
+        action = loadedview.actions()[0]
+        action.triggered.emit()
+
+
+def test_menu_action_hovered(qtbot, loadedview):
+    with qtbot.waitSignal(loadedview.hovered, raising=True):
+        action = loadedview.actions()[0]
+        action.hovered.emit()
+
+
+def test_action_triggered(qtbot, loadedview):
+    with qtbot.waitSignal(loadedview.triggered, raising=True):
+        action = loadedview.actions()[0].menu().actions()[0]
+        action.triggered.emit()
+
+
+def test_action_hovered(qtbot, loadedview):
+    with qtbot.waitSignal(loadedview.hovered, raising=True):
+        action = loadedview.actions()[0].menu().actions()[0]
+        action.hovered.emit()
