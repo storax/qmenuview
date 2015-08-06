@@ -28,7 +28,7 @@ class MenuView(QtGui.QMenu):
         self._menuindexmap = {self: QtCore.QModelIndex(),
                               QtCore.QModelIndex(): self}
         self._actionindexmap = {}
-        self.recursive = False
+        self.recursive = True
         """If True, create submenus for treemodels."""
 
     @property
@@ -58,11 +58,12 @@ class MenuView(QtGui.QMenu):
             self._model.rowsRemoved.disconnect(self.remove_menus)
             self._model.dataChanged.disconnect(self.update_menus)
         self._model = model
-        model.modelReset.connect(self.reset)
-        model.rowsInserted.connect(self.insert_menus)
-        model.rowsMoved.connect(self.move_menus)
-        model.rowsRemoved.connect(self.remove_menus)
-        model.dataChanged.connect(self.update_menus)
+        if model:
+            model.modelReset.connect(self.reset)
+            model.rowsInserted.connect(self.insert_menus)
+            model.rowsMoved.connect(self.move_menus)
+            model.rowsRemoved.connect(self.remove_menus)
+            model.dataChanged.connect(self.update_menus)
         self.reset()
 
     def reset(self, ):
@@ -73,9 +74,9 @@ class MenuView(QtGui.QMenu):
         :raises: None
         """
         self.clear()
-        self._create_menus()
+        self._create_all_menus()
 
-    def _create_menus(self, ):
+    def _create_all_menus(self, ):
         """Create all menus according to the model
 
         :returns: None
@@ -85,26 +86,54 @@ class MenuView(QtGui.QMenu):
         m = self._model
         if not m:
             return
-        rows = m.rowCount(QtCore.QModelIndex())
-        for i in range(rows):
-            self._create_menu(i, QtCore.QModelIndex())
+        if self.recursive:
+            indizes = self._flatten_hierarchy(m)
+        else:
+            indizes = [m.index(i, 0) for i in range(m.rowCount())]
+        for i in indizes:
+            self._create_menu(i)
 
-    def _create_menu(self, row, parent):
+    @staticmethod
+    def _flatten_hierarchy(model):
+        """Return a level-order list of indizes
+
+        :param model: the model to traverse
+        :type model: :class:`QtCore.QAbstractItemModel`
+        :returns: a level-order list of indizes
+        :rtype: :class:`list` of :class:`QtCore.QModelIndex`
+        :raises: None
+        """
+        indizes = []
+        parent = QtCore.QModelIndex()
+        parents = [parent]
+        children = []
+        while parents:
+            for parent in parents:
+                for i in range(model.rowCount(parent)):
+                    index = model.index(i, 0, parent)
+                    indizes.append(index)
+                    children.append(index)
+            parents = children
+            children = []
+        return indizes
+
+    def _create_menu(self, index):
         m = self._model
-        child = m.index(row, 0, parent)
-        data = child.data(QtCore.Qt.DisplayRole)
-        if self.recursive and m.canFetchMore(child):
-            m.fetchMore(child)
-        if self.recursive and m.hasChildren(child):
-            newmenu = self.addMenu(str(data))
+        data = index.data(QtCore.Qt.DisplayRole)
+        if self.recursive and m.canFetchMore(index):
+            m.fetchMore(index)
+        if self.recursive and m.hasChildren(index):
+            parent = self._menuindexmap[index.parent()]
+            newmenu = parent.addMenu(str(data))
             action = newmenu.menuAction()
-            self._menuindexmap[newmenu] = child
-            self._menuindexmap[child] = newmenu
+            self._menuindexmap[newmenu] = index
+            self._menuindexmap[index] = newmenu
             newmenu.destroyed.connect(functools.partial(self.menu_destroyed, newmenu))
         else:
-            action = self.addAction(str(data))
-            self._actionindexmap[action] = child
-            self._actionindexmap[child] = action
+            parent = self._menuindexmap[index.parent()]
+            action = parent.addAction(str(data))
+            self._actionindexmap[action] = index
+            self._actionindexmap[index] = action
             action.destroyed.connect(functools.partial(self.action_destroyed, action))
 
     def menu_destroyed(self, menu):
