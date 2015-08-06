@@ -29,6 +29,80 @@ class MenuView(QtGui.QMenu):
         self.recursive = True
         """If True, create submenus for treemodels."""
 
+    def get_index(self, action, column=0):
+        """Return the index for the given action
+
+        :param action: the action to query
+        :type action: :class:`QtGui.QAction`
+        :param column: The column of the index
+        :type column: :class:`int`
+        :returns: the index of the action
+        :rtype: :class:`QtCore.QModelIndex`
+        :rasies: None
+        """
+        if action == self.menuAction():
+            return QtCore.QModelIndex()
+        # find all parents to get their index
+        parents = self._get_parents(action)
+        index = QtCore.QModelIndex()
+        for a in reversed(parents):
+            parent = a.parentWidget()
+            row = parent.actions().index(a)
+            index = self._model.index(row, 0, index)
+        parent = action.parentWidget()
+        row = parent.action().index(action)
+        index = self._model.index(row, column, index)
+        return index
+
+    def get_action(self, index):
+        """Return the action for the given index
+
+        :param index: the index to query
+        :type index: :class:`QtCore.QModelIndex`
+        :returns: the action for the given index
+        :rtype: :class:`QtGui.QAction`
+        :raises: None
+        """
+        if not index.isValid():
+            return self.menuAction()
+        parents = self._get_parent_indizes(index)
+        menu = self
+        for i in reversed(parents):
+            action = menu.actions()[i.row()]
+            menu = action.menu()
+        return menu.actions()[index.row()]
+
+    def _get_parents(self, action):
+        parents = []
+        a = action
+        while True:
+            parent = a.parentWidget()
+            if not isinstance(parent, QtGui.QMenu):
+                # Is not part of the tree
+                return QtCore.QModelIndex()
+            # break if parent is root because we got all parents we need
+            if parent == self:
+                break
+            # a new parent was found and we are still not at root
+            # search further until we get to root
+            parent = parent.menuAction()
+            a = parent
+            parents.append(parent)
+        return parents
+
+    def _get_parent_indizes(self, index):
+        if not index.isValid() or index.model() != self._model:
+            return []
+        parents = []
+        i = index
+        while True:
+            p = i.parent()
+            parents.append(p)
+            if not p.isValid():
+                break
+            i = p
+        return parents
+
     def _initialize_indexmaps(self):
         self._menuindexmap = {self: QtCore.QModelIndex(),
                               QtCore.QModelIndex(): self}
