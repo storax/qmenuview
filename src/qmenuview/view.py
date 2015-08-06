@@ -90,7 +90,30 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        raise NotImplementedError
+        m = self._model
+        if not m:
+            return
+        rows = m.rowCount(QtCore.QModelIndex())
+        for i in range(rows):
+            self._create_menu(i, QtCore.QModelIndex())
+
+    def _create_menu(self, row, parent):
+        m = self._model
+        child = m.index(row, 0, parent)
+        data = child.data(QtCore.Qt.DisplayRole)
+        if self.recursive and m.canFetchMore(child):
+            m.fetchMore(child)
+        if self.recursive and m.hasChildren(child):
+            newmenu = self.addMenu(str(data))
+            action = newmenu.menuAction()
+            self._menuindexmap[newmenu] = child
+            self._menuindexmap[child] = newmenu
+            newmenu.destroyed.connect(self.menu_destroyed)
+        else:
+            action = self.addAction(str(data))
+            self._actionindexmap[action] = child
+            self._actionindexmap[child] = action
+            action.destroyed.connect(self.action_destroyed)
 
     def menu_destroyed(self, menu):
         """Remove the menu from the indexmap
@@ -101,7 +124,9 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
+        index = self._menuindexmap[menu]
         del self._menuindexmap[menu]
+        del self._menuindexmap[index]
 
     def action_destroyed(self, action):
         """Remove the action from the indexmap
@@ -112,7 +137,9 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
+        index = self._actionindexmap[action]
         del self._actionindexmap[action]
+        del self._actionindexmap[index]
 
     def action_hovered(self, action):
         """Emit the hovered signal
