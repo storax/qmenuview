@@ -25,11 +25,14 @@ class MenuView(QtGui.QMenu):
         """
         super(MenuView, self).__init__(title, parent)
         self._model = None
+        self._initialize_indexmaps()
+        self.recursive = True
+        """If True, create submenus for treemodels."""
+
+    def _initialize_indexmaps(self):
         self._menuindexmap = {self: QtCore.QModelIndex(),
                               QtCore.QModelIndex(): self}
         self._actionindexmap = {}
-        self.recursive = True
-        """If True, create submenus for treemodels."""
 
     @property
     def model(self, ):
@@ -74,6 +77,7 @@ class MenuView(QtGui.QMenu):
         :raises: None
         """
         self.clear()
+        self._initialize_indexmaps()
         self._create_all_menus()
 
     def _create_all_menus(self, ):
@@ -125,7 +129,6 @@ class MenuView(QtGui.QMenu):
         if self.recursive and m.hasChildren(index):
             parent = self._menuindexmap[index.parent()]
             newmenu = parent.addMenu(str(data))
-            action = newmenu.menuAction()
             self._menuindexmap[newmenu] = index
             self._menuindexmap[index] = newmenu
             newmenu.destroyed.connect(functools.partial(self.menu_destroyed, newmenu))

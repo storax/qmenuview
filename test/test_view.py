@@ -29,9 +29,9 @@ def treemodel():
 
 
 @pytest.fixture(scope='function')
-def loadedview(model):
+def loadedview(treemodel):
     mv = qmenuview.MenuView()
-    mv.model = model
+    mv.model = treemodel
     return mv
 
 
