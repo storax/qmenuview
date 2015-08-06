@@ -138,3 +138,20 @@ def test_action_hovered(qtbot, loadedview):
     with qtbot.waitSignal(loadedview.hovered, raising=True):
         action = loadedview.actions()[0].menu().actions()[0]
         action.hovered.emit()
+
+
+def test_insert_menus(treemodel):
+    mv = qmenuview.MenuView()
+    mv.model = treemodel
+    item = QtGui.QStandardItem("newitem1")
+    item.appendRow(QtGui.QStandardItem("newitem2"))
+    parentindex = treemodel.index(2, 0, treemodel.index(2, 0))
+    parent = treemodel.itemFromIndex(parentindex)
+    parent.appendRow(item)
+    parentmenu = mv.actions()[2].menu().actions()[2].menu()
+    assert parentmenu,\
+        "The parent action was not converted to a menu"
+    newaction = parentmenu.actions()[0]
+    assert newaction.text() == 'newitem1'
+    assert newaction.menu().actions()[0].text() == 'newitem2',\
+        "Did not create submenus of inserted rows."
