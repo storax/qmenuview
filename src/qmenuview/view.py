@@ -25,7 +25,6 @@ class MenuView(QtGui.QMenu):
         """
         super(MenuView, self).__init__(title, parent)
         self._model = None
-        self._initialize_indexmaps()
         self.recursive = True
         """If True, create submenus for treemodels."""
 
@@ -70,7 +69,12 @@ class MenuView(QtGui.QMenu):
         for i in reversed(parents):
             action = menu.actions()[i.row()]
             menu = action.menu()
-        return menu.actions()[index.row()]
+        if not menu:
+            return None
+        try:
+            return menu.actions()[index.row()]
+        except IndexError:
+            return None
 
     def _get_parents(self, action):
         parents = []
@@ -79,7 +83,7 @@ class MenuView(QtGui.QMenu):
             parent = a.parentWidget()
             if not isinstance(parent, QtGui.QMenu):
                 # Is not part of the tree
-                return QtCore.QModelIndex()
+                return []
             # break if parent is root because we got all parents we need
             if parent == self:
                 break
@@ -97,16 +101,11 @@ class MenuView(QtGui.QMenu):
         i = index
         while True:
             p = i.parent()
-            parents.append(p)
             if not p.isValid():
                 break
+            parents.append(p)
             i = p
         return parents
-
-    def _initialize_indexmaps(self):
-        self._menuindexmap = {self: QtCore.QModelIndex(),
-                              QtCore.QModelIndex(): self}
-        self._actionindexmap = {}
 
     @property
     def model(self, ):
@@ -151,7 +150,6 @@ class MenuView(QtGui.QMenu):
         :raises: None
         """
         self.clear()
-        self._initialize_indexmaps()
         self._create_all_menus()
 
     def _create_all_menus(self, ):
@@ -203,61 +201,22 @@ class MenuView(QtGui.QMenu):
         data = index.data(QtCore.Qt.DisplayRole)
         if self.recursive and m.canFetchMore(index):
             m.fetchMore(index)
-        parent = self._menuindexmap.get(index.parent())
-        if parent is None:
-            parentaction = self._actionindexmap[index.parent()]
+        parentaction = self.get_action(index.parent())
+        if parentaction is None:
             parent = QtGui.QMenu(None)
-            parent.destroyed.connect(functools.partial(self.menu_destroyed, parent))
             parentaction.setMenu(parent)
-            self._menuindexmap[index.parent()] = parent
-            self._menuindexmap[parent] = index.parent()
+        else:
+            parent = parentaction.menu()
         beforeindex = index.sibling(index.row(), 0)
-        before = self._actionindexmap.get(beforeindex)
+        before = self.get_action(beforeindex)
         if self.recursive and m.hasChildren(index):
             action = parent.insertMenu(before, QtGui.QMenu(str(data)))
-            newmenu = action.menu()
-            self._actionindexmap[action] = index
-            self._actionindexmap[index] = action
-            self._menuindexmap[newmenu] = index
-            self._menuindexmap[index] = newmenu
-            action.triggered.connect(functools.partial(self.action_triggered, action))
-            action.hovered.connect(functools.partial(self.action_hovered, action))
-            newmenu.destroyed.connect(functools.partial(self.menu_destroyed, newmenu))
         else:
             action = QtGui.QAction(None)
             action.setText(str(data))
             parent.insertAction(before, action)
-            self._actionindexmap[action] = index
-            self._actionindexmap[index] = action
-            action.triggered.connect(functools.partial(self.action_triggered, action))
-            action.hovered.connect(functools.partial(self.action_hovered, action))
-            action.destroyed.connect(functools.partial(self.action_destroyed, action))
-
-    def menu_destroyed(self, menu):
-        """Remove the menu from the indexmap
-
-        :param menu: The menu that got destroyed
-        :type menu: :class:`QtGui.QMenu`
-        :returns: None
-        :rtype: None
-        :raises: None
-        """
-        index = self._menuindexmap[menu]
-        del self._menuindexmap[menu]
-        del self._menuindexmap[index]
-
-    def action_destroyed(self, action):
-        """Remove the action from the indexmap
-
-        :param action: The action that got destroyed
-        :type action: :class:`QtGui.QMenu`
-        :returns: None
-        :rtype: None
-        :raises: None
-        """
-        index = self._actionindexmap[action]
-        del self._actionindexmap[action]
-        del self._actionindexmap[index]
+        action.triggered.connect(functools.partial(self.action_triggered, action))
+        action.hovered.connect(functools.partial(self.action_hovered, action))
 
     def action_hovered(self, action):
         """Emit the hovered signal
@@ -294,7 +253,7 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        index = self._actionindexmap.get(action)
+        index = self.get_index(action)
         if index and index.isValid():
             signal.emit(index)
 
