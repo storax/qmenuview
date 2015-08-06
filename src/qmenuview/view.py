@@ -98,17 +98,20 @@ class MenuView(QtGui.QMenu):
             self._create_menu(i)
 
     @staticmethod
-    def _flatten_hierarchy(model):
+    def _flatten_hierarchy(model, parent=None):
         """Return a level-order list of indizes
 
         :param model: the model to traverse
         :type model: :class:`QtCore.QAbstractItemModel`
+        :param parent: the parent index. Default is the root.
+        :type parent: :class:`QtCore.QModelIndex`
         :returns: a level-order list of indizes
         :rtype: :class:`list` of :class:`QtCore.QModelIndex`
         :raises: None
         """
         indizes = []
-        parent = QtCore.QModelIndex()
+        if parent is None:
+            parent = QtCore.QModelIndex()
         parents = [parent]
         children = []
         while parents:
@@ -126,10 +129,19 @@ class MenuView(QtGui.QMenu):
         data = index.data(QtCore.Qt.DisplayRole)
         if self.recursive and m.canFetchMore(index):
             m.fetchMore(index)
+        parent = self._menuindexmap.get(index.parent())
+        if parent is None:
+            parentaction = self._actionindexmap[index.parent()]
+            parent = QtGui.QMenu(None)
+            parent.destroyed.connect(functools.partial(self.menu_destroyed, parent))
+            parentaction.setMenu(parent)
+            self._menuindexmap[index.parent()] = parent
+            self._menuindexmap[parent] = index.parent()
+        beforeindex = index.sibling(index.row(), 0)
+        before = self._actionindexmap.get(beforeindex)
         if self.recursive and m.hasChildren(index):
-            parent = self._menuindexmap[index.parent()]
-            newmenu = parent.addMenu(str(data))
-            action = newmenu.menuAction()
+            action = parent.insertMenu(before, QtGui.QMenu(str(data)))
+            newmenu = action.menu()
             self._actionindexmap[action] = index
             self._actionindexmap[index] = action
             self._menuindexmap[newmenu] = index
@@ -138,8 +150,9 @@ class MenuView(QtGui.QMenu):
             action.hovered.connect(functools.partial(self.action_hovered, action))
             newmenu.destroyed.connect(functools.partial(self.menu_destroyed, newmenu))
         else:
-            parent = self._menuindexmap[index.parent()]
-            action = parent.addAction(str(data))
+            action = QtGui.QAction(None)
+            action.setText(str(data))
+            parent.insertAction(before, action)
             self._actionindexmap[action] = index
             self._actionindexmap[index] = action
             action.triggered.connect(functools.partial(self.action_triggered, action))
@@ -224,7 +237,12 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        raise NotImplementedError
+        for i in range(first, last + 1):
+            index = self._model.index(i, 0, parent)
+            flattened = [index]
+            flattened = self._flatten_hierarchy(self._model, index)
+            for newi in flattened:
+                self._create_menu(newi)
 
     def move_menus(self, parent, start, end, destination, row):
         """Move menus between start and end under the given parent,
