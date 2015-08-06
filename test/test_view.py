@@ -1,5 +1,5 @@
 import pytest
-from PySide import QtGui
+from PySide import QtGui, QtCore
 
 import qmenuview
 
@@ -40,6 +40,19 @@ def test_set_empty_model(loadedview):
     m = QtGui.QStandardItemModel()
     loadedview.model = m
     assert loadedview.isEmpty()
+
+
+def test_set_empty_model_menumap(loadedview):
+    m = QtGui.QStandardItemModel()
+    loadedview.model = m
+    assert loadedview._menuindexmap == {loadedview: QtCore.QModelIndex(),
+                                        QtCore.QModelIndex(): loadedview}
+
+
+def test_set_empty_model_actionmap(loadedview):
+    m = QtGui.QStandardItemModel()
+    loadedview.model = m
+    assert not loadedview._actionindexmap
 
 
 def test_actions_created(model):

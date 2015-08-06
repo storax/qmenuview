@@ -1,3 +1,5 @@
+import functools
+
 from PySide import QtCore, QtGui
 
 __all__ = ['MenuView']
@@ -70,18 +72,8 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        self._delete_menus()
+        self.clear()
         self._create_menus()
-
-    def _delete_menus(self, ):
-        """Delete all menus
-
-        :returns: None
-        :rtype: None
-        :raises: None
-        """
-        for action in self.actions():
-            action.deleteLater()
 
     def _create_menus(self, ):
         """Create all menus according to the model
@@ -108,12 +100,12 @@ class MenuView(QtGui.QMenu):
             action = newmenu.menuAction()
             self._menuindexmap[newmenu] = child
             self._menuindexmap[child] = newmenu
-            newmenu.destroyed.connect(self.menu_destroyed)
+            newmenu.destroyed.connect(functools.partial(self.menu_destroyed, newmenu))
         else:
             action = self.addAction(str(data))
             self._actionindexmap[action] = child
             self._actionindexmap[child] = action
-            action.destroyed.connect(self.action_destroyed)
+            action.destroyed.connect(functools.partial(self.action_destroyed, action))
 
     def menu_destroyed(self, menu):
         """Remove the menu from the indexmap
