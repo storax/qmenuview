@@ -25,9 +25,19 @@ class MenuView(QtGui.QMenu):
         """
         super(MenuView, self).__init__(title, parent)
         self.text_column = 0
-        """The column to query for the action text"""
+        """The column for the action text"""
         self.icon_column = 0
-        """The column to query for the action icon"""
+        """The column for the action icon"""
+        self.icontext_column = -1
+        """The column for the action icon text"""
+        self.tooltip_column = -1
+        """The column for the tooltip data"""
+        self.checked_column = -1
+        """The column for the checked data. Has to be checkable."""
+        self.whatsthis_column = -1
+        """The column for the whatsThis text."""
+        self.statustip_column = -1
+        """The column for the statustip text."""
         self._model = None
 
     def get_index(self, action, column=0):
@@ -244,14 +254,40 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
+        flags = index.flags()
         textdata = self.get_data(index, QtCore.Qt.DisplayRole, self.text_column)
         icondata = self.get_data(index, QtCore.Qt.DecorationRole, self.icon_column)
+        icontextdata = self.get_data(index, QtCore.Qt.DisplayRole, self.icontext_column)
+        tooltipdata = self.get_data(index, QtCore.Qt.ToolTipRole, self.tooltip_column)
+        checkdata = self.get_data(index, QtCore.Qt.CheckStateRole, self.checked_column)
+        whatsthisdata = self.get_data(index, QtCore.Qt.WhatsThisRole, self.whatsthis_column)
+        statustipdata = self.get_data(index, QtCore.Qt.StatusTipRole, self.statustip_column)
         text = str(textdata)
         icon = self._process_icondata(icondata)
-        if textdata and action.text() != text:
+        icontext = str(icontextdata)
+        tooltip = str(tooltipdata)
+        checked = int(checkdata) if checkdata is not None else 0
+        whatsthis = str(whatsthisdata)
+        statustip = str(statustipdata)
+
+        action.setEnabled(flags & QtCore.Qt.ItemIsEnabled)
+        if textdata:
             action.setText(text)
-        if icon and action.icon() != icon:
+        if icon:
             action.setIcon(icon)
+        if icontextdata:
+            action.setIconText(icontext)
+        if tooltipdata:
+            action.setToolTip(tooltip)
+        checkedindex = index.sibling(index.row(), self.checked_column)
+        checkedflags = checkedindex.flags()
+        action.setCheckable(checkedflags & QtCore.Qt.ItemIsUserCheckable)
+        if checkdata:
+            action.setChecked(checked == QtCore.Qt.Checked)
+        if whatsthisdata:
+            action.setWhatsThis(whatsthis)
+        if statustip:
+            action.setStatusTip(statustip)
 
     def _convert_action_to_menu(self, action):
         parent = action.parentWidget()
@@ -350,8 +386,11 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        if (self.text_column >= topLeft.column() and self.text_column <= bottomRight.column()) or\
-           (self.icon_column >= topLeft.column() and self.icon_column <= bottomRight.column()):
+        columns = [self.text_column, self.icon_column, self.icontext_column,
+                   self.tooltip_column, self.checked_column, self.whatsthis_column,
+                   self.statustip_column]
+        needupdate = any([(c >= topLeft.column() and c <= bottomRight.column()) for c in columns])
+        if needupdate:
             for row in range(topLeft.row(), bottomRight.row() + 1):
                 index = topLeft.sibling(row, 0)
                 action = self.get_action(index)
@@ -376,7 +415,8 @@ class MenuView(QtGui.QMenu):
         """
         if column and index.column() != column:
             index = index.sibling(index.row(), column)
-        return index.data(role)
+        if index.isValid():
+            return index.data(role)
 
     @staticmethod
     def _process_icondata(icondata):
