@@ -80,8 +80,9 @@ class MenuView(QtGui.QMenu):
         parents = []
         a = action
         while True:
-            parentwidget = a.parentWidget()
-            parent = parentwidget.parent()
+            parent = a.parent()
+            if parent == a.menu():
+                parent = parent.parent()
             if not isinstance(parent, QtGui.QMenu):
                 # Is not part of the tree
                 return []
@@ -92,7 +93,6 @@ class MenuView(QtGui.QMenu):
             parents.append(parent)
             # break if parent is root because we got all parents we need
             if parent == self.menuAction():
-                print("haha")
                 break
         return parents
 
@@ -204,21 +204,26 @@ class MenuView(QtGui.QMenu):
         if self.recursive and m.canFetchMore(index):
             m.fetchMore(index)
         parentaction = self.get_action(index.parent())
-        if parentaction is None:
-            parent = QtGui.QMenu(None)
-            parentaction.setMenu(parent)
-        else:
-            parent = parentaction.menu()
+        # Action has no menu yet. In order to create a sub action,
+        # we have to convert it.
+        if parentaction.menu() is None:
+            self._convert_action_to_menu(parentaction)
+        parent = parentaction.menu()
         beforeindex = index.sibling(index.row(), 0)
         before = self.get_action(beforeindex)
         if self.recursive and m.hasChildren(index):
             action = parent.insertMenu(before, QtGui.QMenu(str(data), parent=parent))
         else:
-            action = QtGui.QAction(None)
+            action = QtGui.QAction(parent)
             action.setText(str(data))
             parent.insertAction(before, action)
         action.triggered.connect(functools.partial(self.action_triggered, action))
         action.hovered.connect(functools.partial(self.action_hovered, action))
+
+    def _convert_action_to_menu(self, action):
+        parent = action.parentWidget()
+        menu = QtGui.QMenu(parent)
+        action.setMenu(menu)
 
     def action_hovered(self, action):
         """Emit the hovered signal
