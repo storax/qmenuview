@@ -36,5 +36,6 @@ PySide view for menues
 Features
 --------
 
-* TODO
-
+* MenuView class which creates submenus/actions based on a model.
+* Supports modelReset, rowsInserted, rowsRemoved and dataChanged signals of the model.
+* Supports icon, text, iconText, toolTip, checked, whatsThis, statusTip, enabled
