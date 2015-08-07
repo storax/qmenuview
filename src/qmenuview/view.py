@@ -80,18 +80,20 @@ class MenuView(QtGui.QMenu):
         parents = []
         a = action
         while True:
-            parent = a.parentWidget()
+            parentwidget = a.parentWidget()
+            parent = parentwidget.parent()
             if not isinstance(parent, QtGui.QMenu):
                 # Is not part of the tree
                 return []
-            # break if parent is root because we got all parents we need
-            if parent == self:
-                break
             # a new parent was found and we are still not at root
             # search further until we get to root
             parent = parent.menuAction()
             a = parent
             parents.append(parent)
+            # break if parent is root because we got all parents we need
+            if parent == self.menuAction():
+                print("haha")
+                break
         return parents
 
     def _get_parent_indizes(self, index):
@@ -210,7 +212,7 @@ class MenuView(QtGui.QMenu):
         beforeindex = index.sibling(index.row(), 0)
         before = self.get_action(beforeindex)
         if self.recursive and m.hasChildren(index):
-            action = parent.insertMenu(before, QtGui.QMenu(str(data)))
+            action = parent.insertMenu(before, QtGui.QMenu(str(data), parent=parent))
         else:
             action = QtGui.QAction(None)
             action.setText(str(data))
