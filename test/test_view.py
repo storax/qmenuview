@@ -94,15 +94,6 @@ def test_menus_created(loadedview):
             assert ca.text() == 'testrow%s:%s' % (i, j)
 
 
-def test_menus_created_not_recursive(treemodel):
-    mv = qmenuview.MenuView()
-    mv.recursive = False
-    mv.model = treemodel
-    for i, a in enumerate(mv.actions()):
-        assert a.text() == 'testrow%s:0' % i
-        assert a.menu() is None
-
-
 def test_menu_action_triggered(qtbot, loadedview):
     with qtbot.waitSignal(loadedview.triggered, raising=True):
         action = loadedview.actions()[0]
@@ -236,3 +227,29 @@ def test_get_index_second_level(loadedview, treemodel):
     i = loadedview.get_index(loadedview.actions()[2].menu().actions()[9])
     expected = treemodel.index(9, 0, treemodel.index(2, 0))
     assert i == expected
+
+
+def test_remove_menus(loadedview, treemodel):
+    first = 3
+    count = 5
+    treemodel.removeRows(first, count, treemodel.index(2, 0))
+    remaining = loadedview.actions()[2].menu().actions()
+    assert len(remaining) == 5,\
+        "There should only be 5 rows remaining!"
+    texts = ['2:0', '2:1', '2:2', '2:8', '2:9']
+    expectedtexts = ['testrow%s' % t for t in texts]
+    remainingtexts = [a.text() for a in remaining]
+    assert expectedtexts == remainingtexts,\
+        "There should only be actions with these texts left"
+
+
+def test_remove_menus_convert_menu(loadedview, treemodel):
+    first = 0
+    count = 10
+    treemodel.removeRows(first, count, treemodel.index(2, 0))
+    assert loadedview.actions()[2].menu() is None,\
+        "The should be no menu, if there are no actions left."
+
+
+def test_move_row_to_menu(loadedview, treemodel):
+    pass

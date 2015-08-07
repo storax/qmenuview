@@ -25,8 +25,6 @@ class MenuView(QtGui.QMenu):
         """
         super(MenuView, self).__init__(title, parent)
         self._model = None
-        self.recursive = True
-        """If True, create submenus for treemodels."""
 
     def get_index(self, action, column=0):
         """Return the index for the given action
@@ -148,14 +146,14 @@ class MenuView(QtGui.QMenu):
             self._model.modelReset.disconnect(self.reset)
             self._model.rowsInserted.disconnect(self.insert_menus)
             self._model.rowsMoved.disconnect(self.move_menus)
-            self._model.rowsRemoved.disconnect(self.remove_menus)
+            self._model.rowsAboutToBeRemoved.disconnect(self.remove_menus)
             self._model.dataChanged.disconnect(self.update_menus)
         self._model = model
         if model:
             model.modelReset.connect(self.reset)
             model.rowsInserted.connect(self.insert_menus)
             model.rowsMoved.connect(self.move_menus)
-            model.rowsRemoved.connect(self.remove_menus)
+            model.rowsAboutToBeRemoved.connect(self.remove_menus)
             model.dataChanged.connect(self.update_menus)
         self.reset()
 
@@ -179,10 +177,7 @@ class MenuView(QtGui.QMenu):
         m = self._model
         if not m:
             return
-        if self.recursive:
-            indizes = self._flatten_hierarchy(m)
-        else:
-            indizes = [m.index(i, 0) for i in range(m.rowCount())]
+        indizes = self._flatten_hierarchy(m)
         for i in indizes:
             self._create_menu(i)
 
@@ -216,8 +211,6 @@ class MenuView(QtGui.QMenu):
     def _create_menu(self, index):
         m = self._model
         data = index.data(QtCore.Qt.DisplayRole)
-        if self.recursive and m.canFetchMore(index):
-            m.fetchMore(index)
         parentaction = self.get_action(index.parent())
         # Action has no menu yet. In order to create a sub action,
         # we have to convert it.
@@ -226,7 +219,7 @@ class MenuView(QtGui.QMenu):
         parent = parentaction.menu()
         beforeindex = index.sibling(index.row(), 0)
         before = self.get_action(beforeindex)
-        if self.recursive and m.hasChildren(index):
+        if m.hasChildren(index):
             action = parent.insertMenu(before, QtGui.QMenu(str(data), parent=parent))
         else:
             action = QtGui.QAction(parent)
@@ -332,7 +325,14 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        raise NotImplementedError
+        parentaction = self.get_action(parent)
+        parentmenu = parentaction.menu()
+        for i in reversed(range(first, last + 1)):
+            index = self._model.index(i, 0, parent)
+            action = self.get_action(index)
+            parentmenu.removeAction(action)
+        if not parentmenu.actions():
+            parentaction.setMenu(None)
 
     def update_menus(self, topLeft, bottomRight):
         """Update the menus from topleft index to bottomright index
