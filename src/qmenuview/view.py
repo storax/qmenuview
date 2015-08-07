@@ -295,7 +295,7 @@ class MenuView(QtGui.QMenu):
         for i in range(first, last + 1):
             index = self._model.index(i, 0, parent)
             flattened = [index]
-            flattened = self._flatten_hierarchy(self._model, index)
+            flattened.extend(self._flatten_hierarchy(self._model, index))
             for newi in flattened:
                 self._create_menu(newi)
 
