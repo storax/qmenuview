@@ -145,14 +145,12 @@ class MenuView(QtGui.QMenu):
         if self._model:
             self._model.modelReset.disconnect(self.reset)
             self._model.rowsInserted.disconnect(self.insert_menus)
-            self._model.rowsMoved.disconnect(self.move_menus)
             self._model.rowsAboutToBeRemoved.disconnect(self.remove_menus)
             self._model.dataChanged.disconnect(self.update_menus)
         self._model = model
         if model:
             model.modelReset.connect(self.reset)
             model.rowsInserted.connect(self.insert_menus)
-            model.rowsMoved.connect(self.move_menus)
             model.rowsAboutToBeRemoved.connect(self.remove_menus)
             model.dataChanged.connect(self.update_menus)
         self.reset()
@@ -291,26 +289,6 @@ class MenuView(QtGui.QMenu):
             flattened.extend(self._flatten_hierarchy(self._model, index))
             for newi in flattened:
                 self._create_menu(newi)
-
-    def move_menus(self, parent, start, end, destination, row):
-        """Move menus between start and end under the given parent,
-        to destination starting at the given row
-
-        :param parent: The parent of the moved rows
-        :type parent: :class:`QtCore.QModelIndex`
-        :param start: the start row
-        :type start: :class:`int`
-        :param end: the last row
-        :type end: :class:`int`
-        :param destination: the parent of the destinaton
-        :type destination: :class:`QtCore.QModelIndex`
-        :param row: the row where the menus are moved to
-        :type row: :class:`int`
-        :returns: None
-        :rtype: None
-        :raises: None
-        """
-        raise NotImplementedError
 
     def remove_menus(self, parent, first, last):
         """Remove the menus under the given parent

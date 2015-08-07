@@ -249,7 +249,3 @@ def test_remove_menus_convert_menu(loadedview, treemodel):
     treemodel.removeRows(first, count, treemodel.index(2, 0))
     assert loadedview.actions()[2].menu() is None,\
         "The should be no menu, if there are no actions left."
-
-
-def test_move_row_to_menu(loadedview, treemodel):
-    pass
