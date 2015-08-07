@@ -142,3 +142,97 @@ def test_insert_menus(treemodel):
     assert newaction.text() == 'newitem1'
     assert newaction.menu().actions()[0].text() == 'newitem2',\
         "Did not create submenus of inserted rows."
+
+
+def test_get_parent_indizes_invalid(loadedview):
+    parents = loadedview._get_parent_indizes(QtCore.QModelIndex())
+    assert parents == [],\
+        "Invalid index has no parents!"
+
+
+def test_get_parent_indizes_other_model(loadedview, model):
+    parents = loadedview._get_parent_indizes(model.index(0, 0))
+    assert parents == [],\
+        "There should be no parents because index is of another model!"
+
+
+def test_get_parent_indizes_first_level(loadedview, treemodel):
+    parents = loadedview._get_parent_indizes(treemodel.index(0, 0))
+    assert parents == [],\
+        "There are no parent indizes because index is on first level!"
+
+
+def test_get_parent_indizes_second_level(loadedview, treemodel):
+    p1 = treemodel.index(0, 0)
+    parents = loadedview._get_parent_indizes(treemodel.index(0, 0, p1))
+    assert parents == [p1],\
+        "There should be one parent!"
+
+
+def test_get_action_invalid(loadedview):
+    action = loadedview.get_action(QtCore.QModelIndex())
+    assert action is loadedview.menuAction(),\
+        "Invalid Index should give the action of the menu view!"
+
+
+def test_get_action_first_level(loadedview, treemodel):
+    action = loadedview.get_action(treemodel.index(3, 0))
+    assert action is loadedview.actions()[3]
+
+
+def test_get_action_second_level(loadedview, treemodel):
+    action = loadedview.get_action(treemodel.index(9, 0, treemodel.index(9, 0)))
+    assert action is loadedview.actions()[9].parentWidget().actions()[9]
+
+
+def test_get_parents_invalid(loadedview):
+    w1 = QtGui.QMenu()
+    w2 = w1.addMenu("Test")
+    action = QtGui.QAction(w2)
+    parents = loadedview._get_parents(action)
+    assert parents == [],\
+        "Actions not part of the tree have no parents!"
+
+
+def test_get_parents_self(loadedview):
+    action = loadedview.menuAction()
+    parents = loadedview._get_parents(action)
+    assert parents == [],\
+        "If the action is the menuAction of the menu view, there are no parents!"
+
+
+def test_get_parents_first_level(loadedview):
+    action = loadedview.actions()[4]
+    parents = loadedview._get_parents(action)
+    assert parents == [],\
+        "First level actions have no parent!"
+
+
+def test_get_parents_second_level(loadedview):
+    p1 = loadedview.actions()[4]
+    action = p1.menu().actions()[9]
+    parents = loadedview._get_parents(action)
+    assert parents == [p1],\
+        "Second level actions only have the first level action as parent!"
+
+
+def test_get_index_self(loadedview):
+    i = loadedview.get_index(loadedview.menuAction())
+    assert not i.isValid()
+
+
+def test_get_index_invalid(loadedview):
+    a = QtGui.QAction(None)
+    i = loadedview.get_index(a)
+    assert not i.isValid()
+
+
+def test_get_index_first_level(loadedview, treemodel):
+    i = loadedview.get_index(loadedview.actions()[9])
+    assert i == treemodel.index(9, 0)
+
+
+def test_get_index_second_level(loadedview, treemodel):
+    i = loadedview.get_index(loadedview.actions()[2].menu().actions()[9])
+    expected = treemodel.index(9, 0, treemodel.index(2, 0))
+    assert i == expected

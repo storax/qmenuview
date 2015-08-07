@@ -44,12 +44,22 @@ class MenuView(QtGui.QMenu):
         # find all parents to get their index
         parents = self._get_parents(action)
         index = QtCore.QModelIndex()
+        # Move through indexes down the chain
         for a in reversed(parents):
-            parent = a.parentWidget()
+            parent = a.parent()
+            # if parent of action is its own menu, get parent of that menu.
+            # We want to know which row the action is in. For that we need
+            # The real parent menu.
+            if parent is a.menu():
+                parent = parent.parent()
             row = parent.actions().index(a)
             index = self._model.index(row, 0, index)
-        parent = action.parentWidget()
-        row = parent.action().index(action)
+        parent = action.parent()
+        if parent is None:
+            return index
+        if parent is action.menu():
+            parent = parent.parent()
+        row = parent.actions().index(action)
         index = self._model.index(row, column, index)
         return index
 
@@ -81,19 +91,24 @@ class MenuView(QtGui.QMenu):
         a = action
         while True:
             parent = a.parent()
-            if parent == a.menu():
+            # If parent is self, then the action is the views menuAction
+            # So there are no parents
+            if parent is self:
+                return []
+            if parent and parent is a.menu():
                 parent = parent.parent()
             if not isinstance(parent, QtGui.QMenu):
-                # Is not part of the tree
+                # Is not part of the tree. Parent is not a menu but
+                # might be None or another Widget
                 return []
+            # break if parent is root because we got all parents we need
+            if parent is self:
+                break
             # a new parent was found and we are still not at root
             # search further until we get to root
             parent = parent.menuAction()
             a = parent
             parents.append(parent)
-            # break if parent is root because we got all parents we need
-            if parent == self.menuAction():
-                break
         return parents
 
     def _get_parent_indizes(self, index):
