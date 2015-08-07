@@ -24,6 +24,10 @@ class MenuView(QtGui.QMenu):
         :raises: None
         """
         super(MenuView, self).__init__(title, parent)
+        self.text_column = 0
+        """The column to query for the action text"""
+        self.icon_column = 0
+        """The column to query for the action icon"""
         self._model = None
 
     def get_index(self, action, column=0):
@@ -208,7 +212,6 @@ class MenuView(QtGui.QMenu):
 
     def _create_menu(self, index):
         m = self._model
-        data = index.data(QtCore.Qt.DisplayRole)
         parentaction = self.get_action(index.parent())
         # Action has no menu yet. In order to create a sub action,
         # we have to convert it.
@@ -218,13 +221,37 @@ class MenuView(QtGui.QMenu):
         beforeindex = index.sibling(index.row(), 0)
         before = self.get_action(beforeindex)
         if m.hasChildren(index):
-            action = parent.insertMenu(before, QtGui.QMenu(str(data), parent=parent))
+            menu = QtGui.QMenu(parent=parent)
+            action = parent.insertMenu(before, menu)
         else:
             action = QtGui.QAction(parent)
-            action.setText(str(data))
             parent.insertAction(before, action)
+        self.set_action_data(action, index)
         action.triggered.connect(functools.partial(self.action_triggered, action))
         action.hovered.connect(functools.partial(self.action_hovered, action))
+
+    def set_action_data(self, action, index):
+        """Set the data of the action for the given index
+
+        .. Note:: The column of the index does not matter. The columns for the data
+                  are specified in :data:`MenuView.text_column` and :data:`MenuView.icon_column`.
+
+        :param action: The action to update
+        :type action: :class:`QtGui.QAction`
+        :param index: The index with the data
+        :type index: :class:`QtCore.QModelIndex`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
+        textdata = self.get_data(index, QtCore.Qt.DisplayRole, self.text_column)
+        icondata = self.get_data(index, QtCore.Qt.DecorationRole, self.icon_column)
+        text = str(textdata)
+        icon = self._process_icondata(icondata)
+        if textdata and action.text() != text:
+            action.setText(text)
+        if icon and action.icon() != icon:
+            action.setIcon(icon)
 
     def _convert_action_to_menu(self, action):
         parent = action.parentWidget()
@@ -323,4 +350,45 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        raise NotImplementedError
+        if (self.text_column >= topLeft.column() and self.text_column <= bottomRight.column()) or\
+           (self.icon_column >= topLeft.column() and self.icon_column <= bottomRight.column()):
+            for row in range(topLeft.row(), bottomRight.row() + 1):
+                index = topLeft.sibling(row, 0)
+                action = self.get_action(index)
+                self.set_action_data(action, index)
+
+    @staticmethod
+    def get_data(index, role, column=None):
+        """Get data of the given index
+
+        If the column is is not None and different from
+        the index column, will get the data from a sibling
+        index with the same row.
+
+        :param index: The index to query for data
+        :type index: :class:`QtCore.QModelIndex`
+        :param role: the data role
+        :type role: :data:`QtCore.Qt.ItemDataRole`
+        :param column: the column of the row to query for data.
+        :type column: :class:`int` | None
+        :returns: The data retrieved
+        :raises: None
+        """
+        if column and index.column() != column:
+            index = index.sibling(index.row(), column)
+        return index.data(role)
+
+    @staticmethod
+    def _process_icondata(icondata):
+        """Return an icon for the data of the :data:`QtCore.Qt.DecorationRole`
+
+        :param icondata: The data from the :data:`QtCore.Qt.DecorationRole`
+        :type icondata: :class:`QtGui.QIcon` | :class:`QtGui.QPixmap`
+        :returns: A Icon based on the data.
+        :rtype: :class:`QtGui.QIcon`
+        :raises: None
+        """
+        if isinstance(icondata, QtGui.QIcon):
+            return icondata
+        if isinstance(icondata, QtGui.QPixmap):
+            return QtGui.QIcon(icondata)

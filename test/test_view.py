@@ -21,16 +21,18 @@ def model():
 def treemodel():
     m = QtGui.QStandardItemModel()
     for i in range(10):
-        item = QtGui.QStandardItem("testrow%s:0" % i)
-        m.appendRow(item)
+        textitem = QtGui.QStandardItem("testrow%s:0" % i)
+        iconitem = QtGui.QStandardItem(QtGui.QIcon(), "iconitem")
+        m.appendRow([textitem, iconitem])
         for j in range(10):
-            item.appendRow(QtGui.QStandardItem("testrow%s:%s" % (i, j)))
+            textitem.appendRow(QtGui.QStandardItem("testrow%s:%s" % (i, j)))
     return m
 
 
 @pytest.fixture(scope='function')
 def loadedview(treemodel):
     mv = qmenuview.MenuView()
+    mv.icon_column = 1
     mv.model = treemodel
     return mv
 
@@ -249,3 +251,9 @@ def test_remove_menus_convert_menu(loadedview, treemodel):
     treemodel.removeRows(first, count, treemodel.index(2, 0))
     assert loadedview.actions()[2].menu() is None,\
         "The should be no menu, if there are no actions left."
+
+
+def test_update_menu_text(loadedview, treemodel):
+    teststring = "Thanks for the fish!"
+    treemodel.setData(treemodel.index(2, 0), teststring)
+    assert loadedview.actions()[2].text() == teststring
