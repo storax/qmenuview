@@ -90,6 +90,7 @@ autosummary_generate = True
 jinjaapi_srcdir = os.path.abspath(os.path.join(thisdir, '..', '..', 'src'))
 jinjaapi_outputdir = os.path.abspath(os.path.join(thisdir, 'reference'))
 jinjaapi_nodelete = False
+jinjaapi_addsummarytemplate = False
 
 
 class Mock(mock.Mock):
