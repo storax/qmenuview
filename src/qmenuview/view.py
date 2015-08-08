@@ -156,17 +156,17 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
+        signalmap = {"modelReset": self.reset,
+                     "rowsInserted": self.insert_menus,
+                     "rowsAboutToBeRemoved": self.remove_menus,
+                     "dataChanged": self.update_menus}
         if self._model:
-            self._model.modelReset.disconnect(self.reset)
-            self._model.rowsInserted.disconnect(self.insert_menus)
-            self._model.rowsAboutToBeRemoved.disconnect(self.remove_menus)
-            self._model.dataChanged.disconnect(self.update_menus)
+            for signal, callback in signalmap.items():
+                getattr(self._model, signal).disconnect(callback)
         self._model = model
         if model:
-            model.modelReset.connect(self.reset)
-            model.rowsInserted.connect(self.insert_menus)
-            model.rowsAboutToBeRemoved.connect(self.remove_menus)
-            model.dataChanged.connect(self.update_menus)
+            for signal, callback in signalmap.items():
+                getattr(model, signal).connect(callback)
         self.reset()
 
     def reset(self, ):
