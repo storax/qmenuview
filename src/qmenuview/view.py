@@ -11,17 +11,54 @@ SetDataArgs = collections.namedtuple('SetDataArgs', ['setfunc', 'column', 'role'
 
 The data is queried from the model with ``role``. Then converted with ``convertfunc``.
 Then ``setfunc`` is used for setting the attribute on the action.
+``convertfunc`` can be ``None``.
 """
 
 
 class MenuView(QtGui.QMenu):
-    """A view that creates submenus based on a model
+    """A view that creates submenus based on a model.
+
+    The model can be a list, table or treemodel.
+    Each row equals to one submenu/action.
+    In a treemodel, the leaves are plain actions, the rest also have menus on top.
+
+    The view listens to the following signals:
+
+      - :data:`QtCore.QAbstractItemModel.modelReset`
+      - :data:`QtCore.QAbstractItemModel.rowsInserted`
+      - :data:`QtCore.QAbstractItemModel.rowsAboutToBeRemoved`
+      - :data:`QtCore.QAbstractItemModel.dataChanged`
+
+    So the view is quite dynamic. If all child rows of an index are removed,
+    the menu gets removed from the action. If rows are inserted to a parent index,
+    which had no children, the action will get a menu.
+
+    If an action emits a signal, the view will emit a signal with the same name.
+    The signal will contain the index and any arguments of the action's signal.
+    You can get the action by using :meth:`MenuView.get_action`.
+
+    You can set which column to use for each attribute. See :data:`MenuView.text_column`,
+    :data:`MenuView.icon_column`, :data:`MenuView.icontext_column`,
+    :data:`MenuView.tooltip_column`, :data:`MenuView.checked_column`,
+    :data:`MenuView.whatsthis_column`, :data:`MenuView.statustip_column`.
+
+    For more control on how the data gets applied to the action, change
+    :data:`MenuView.setdataargs`. It is a list of :class:`SetDataArgs` containers.
+    One container defines the functionname to use for setting the attribute,
+    the column to use, the :data:`QtCore.Qt.ItemDataRole`, and a data conversion function.
+
+    If you want custom menu and action classes,
+    override :meth:`MenuView.create_menu`, :meth:`MenuView.create_action`.
     """
 
     hovered = QtCore.Signal(QtCore.QModelIndex)
     """Signal for when an action gets hovered"""
-    triggered = QtCore.Signal(QtCore.QModelIndex)
+    triggered = QtCore.Signal(QtCore.QModelIndex, bool)
     """Signal for when an action gets triggered"""
+    toggled = QtCore.Signal(QtCore.QModelIndex, bool)
+    """Signal for when an action gets toggled"""
+    changed = QtCore.Signal(QtCore.QModelIndex)
+    """Signal for when an action emits the changed signal"""
 
     def __init__(self, title='', parent=None):
         """Initialize a new menu view with the given title
@@ -261,8 +298,12 @@ class MenuView(QtGui.QMenu):
             action = self.create_action(parent)
         parent.insertAction(before, action)
         self.set_action_data(action, index)
-        action.triggered.connect(functools.partial(self.action_triggered, action))
-        action.hovered.connect(functools.partial(self.action_hovered, action))
+        signalmap = {action.triggered: self.action_triggered,
+                     action.hovered: self.action_hovered,
+                     action.changed: self.action_changed,
+                     action.toggled: self.action_toggled}
+        for signal, callback in signalmap:
+            signal.connect(functools.partial(callback, action))
 
     def create_menu(self, parent):
         """Create a menu and return the menus action.
@@ -295,7 +336,9 @@ class MenuView(QtGui.QMenu):
         """Set the data of the action for the given index
 
         .. Note:: The column of the index does not matter. The columns for the data
-                  are specified in :data:`MenuView.text_column` and :data:`MenuView.icon_column`.
+                  are specified in :data:`MenuView.setdataargs`.
+
+        The arguments to used are defined in :data:`MenuView.setdataargs`.
 
         :param action: The action to update
         :type action: :class:`QtGui.QAction`
@@ -374,8 +417,8 @@ class MenuView(QtGui.QMenu):
 
     def _convert_action_to_menu(self, action):
         parent = action.parentWidget()
-        menu = QtGui.QMenu(parent)
-        action.setMenu(menu)
+        menuaction = self.create_menu(parent)
+        action.setMenu(menuaction.menu())
 
     def action_hovered(self, action):
         """Emit the hovered signal
@@ -388,10 +431,10 @@ class MenuView(QtGui.QMenu):
         """
         self._emit_signal_for_action(self.hovered, action)
 
-    def action_triggered(self, action):
+    def action_triggered(self, action, checked=False):
         """Emit the triggered signal
 
-        :param action: The action which emitted a hovered signal
+        :param action: The action which emitted a triggered signal
         :type action: :class:`QtGui.QAction`
         :param checked: True if the action was in a checked state
         :type checked: :class:`bool`
@@ -399,9 +442,33 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        self._emit_signal_for_action(self.triggered, action)
+        self._emit_signal_for_action(self.triggered, action, checked)
 
-    def _emit_signal_for_action(self, signal, action):
+    def action_toggled(self, action, checked=False):
+        """Emit the toggled signal
+
+        :param action: The action which emitted a toggled signal
+        :type action: :class:`QtGui.QAction`
+        :param checked: True if the action was in a checked state
+        :type checked: :class:`bool`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
+        self._emit_signal_for_action(self.toggled, action, checked)
+
+    def action_changed(self, action):
+        """Emit the toggled signal
+
+        :param action: The action which emitted a changed signal
+        :type action: :class:`QtGui.QAction`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
+        self._emit_signal_for_action(self.changed, action)
+
+    def _emit_signal_for_action(self, signal, action, *args):
         """Emit the given signal for the index of the given action
 
         :param signal: The signal to emit
@@ -414,7 +481,7 @@ class MenuView(QtGui.QMenu):
         """
         index = self.get_index(action)
         if index and index.isValid():
-            signal.emit(index)
+            signal.emit(index, *args)
 
     def insert_menus(self, parent, first, last):
         """Create menus for rows first til last under the given parent
