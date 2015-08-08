@@ -1,8 +1,17 @@
 import functools
+import collections
 
 from PySide import QtCore, QtGui
 
 __all__ = ['MenuView']
+
+
+SetDataArgs = collections.namedtuple('SetDataArgs', ['setfunc', 'column', 'role', 'convertfunc'])
+"""A tuple containing arguments for setting attributes on an action.
+
+The data is queried from the model with ``role``. Then converted with ``convertfunc``.
+Then ``setfunc`` is used for setting the attribute on the action.
+"""
 
 
 class MenuView(QtGui.QMenu):
@@ -39,6 +48,18 @@ class MenuView(QtGui.QMenu):
         self.statustip_column = -1
         """The column for the statustip text."""
         self._model = None
+
+        Qt = QtCore.Qt
+        args = [SetDataArgs('setText', self.text_column, Qt.DisplayRole, str),
+                SetDataArgs('setIcon', self.icon_column, Qt.DecorationRole, self._process_icondata),
+                SetDataArgs('setIconText', self.icontext_column, Qt.DisplayRole, str),
+                SetDataArgs('setToolTip', self.tooltip_column, Qt.ToolTipRole, str),
+                SetDataArgs('setChecked', self.checked_column, Qt.CheckStateRole, self._checkconvertfunc),
+                SetDataArgs('setWhatsThis', self.whatsthis_column, Qt.WhatsThisRole, str),
+                SetDataArgs('setStatusTip', self.statustip_column, Qt.StatusTipRole, str)]
+        self.setdataargs = args
+        """A list of :class:`SetDataArgs` containers. Defines how the
+        data from the model is applied to the action"""
 
     def get_index(self, action, column=0):
         """Return the index for the given action
@@ -284,40 +305,72 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        flags = index.flags()
-        textdata = self.get_data(index, QtCore.Qt.DisplayRole, self.text_column)
-        icondata = self.get_data(index, QtCore.Qt.DecorationRole, self.icon_column)
-        icontextdata = self.get_data(index, QtCore.Qt.DisplayRole, self.icontext_column)
-        tooltipdata = self.get_data(index, QtCore.Qt.ToolTipRole, self.tooltip_column)
-        checkdata = self.get_data(index, QtCore.Qt.CheckStateRole, self.checked_column)
-        whatsthisdata = self.get_data(index, QtCore.Qt.WhatsThisRole, self.whatsthis_column)
-        statustipdata = self.get_data(index, QtCore.Qt.StatusTipRole, self.statustip_column)
-        text = str(textdata)
-        icon = self._process_icondata(icondata)
-        icontext = str(icontextdata)
-        tooltip = str(tooltipdata)
-        checked = int(checkdata) if checkdata is not None else 0
-        whatsthis = str(whatsthisdata)
-        statustip = str(statustipdata)
+        self._set_action_enabled(action, index)
+        self._set_action_checkable(action, index)
+        for args in self.setdataargs:
+            self._set_action_attribute(action, index, args)
 
-        action.setEnabled(flags & QtCore.Qt.ItemIsEnabled)
-        if textdata:
-            action.setText(text)
-        if icon:
-            action.setIcon(icon)
-        if icontextdata:
-            action.setIconText(icontext)
-        if tooltipdata:
-            action.setToolTip(tooltip)
+    @staticmethod
+    def _checkconvertfunc(data):
+        checkedstate = int(data) if data is not None else 0
+        return checkedstate == QtCore.Qt.Checked
+
+    def _set_action_enabled(self, action, index):
+        """Enable the action , depending on the item flags
+
+        :param action: The action to update
+        :type action: :class:`QtGui.QAction`
+        :param index: the model index with the item flags
+        :type index: :class:`QtCore.QModelIndex`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
+        action.setEnabled(index.flags() & QtCore.Qt.ItemIsEnabled)
+
+    def _set_action_checkable(self, action, index):
+        """Set the action checkable, depending on the item flags
+
+        .. Note:: The column of the index does not matter. The column for the data
+                  is specified in :data:`MenuView.checked_column`.
+
+        :param action: The action to update
+        :type action: :class:`QtGui.QAction`
+        :param index: the model index with the item flags
+        :type index: :class:`QtCore.QModelIndex`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
         checkedindex = index.sibling(index.row(), self.checked_column)
         checkedflags = checkedindex.flags()
         action.setCheckable(checkedflags & QtCore.Qt.ItemIsUserCheckable)
-        if checkdata:
-            action.setChecked(checked == QtCore.Qt.Checked)
-        if whatsthisdata:
-            action.setWhatsThis(whatsthis)
-        if statustipdata:
-            action.setStatusTip(statustip)
+
+    def _set_action_attribute(self, action, index, setdataarg):
+        """Query the data of index and use it to set an attribute on action.
+
+        .. Note:: The column of the index does not matter. The column for the data
+                  is specified in ``setdataarg.column``.
+
+        The data will be converted with ``setdataarg.convertfunc``.
+
+        :param action: the action to update
+        :type action: :class:`QtGui.QAction`
+        :param index: the index with the data
+        :type index: :class:`QtCore.QModelIndex`
+        :param setdataarg: The container with arguments that define the way the data is applied
+        :type setdataarg: :class:`SetDataArgs`
+        :returns: None
+        :rtype: None
+        :raises: None
+        """
+        data = self.get_data(index, setdataarg.role, setdataarg.column)
+        if data is None:
+            return
+        setattrmethod = getattr(action, setdataarg.setfunc)
+        if setdataarg.convertfunc:
+            data = setdataarg.convertfunc(data)
+        setattrmethod(data)
 
     def _convert_action_to_menu(self, action):
         parent = action.parentWidget()
