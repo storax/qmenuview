@@ -32,10 +32,16 @@ class MenuView(QtGui.QMenu):
     So the view is quite dynamic. If all child rows of an index are removed,
     the menu gets removed from the action. If rows are inserted to a parent index,
     which had no children, the action will get a menu.
-
-    If an action emits a signal, the view will emit a signal with the same name.
+n
+    If an action emits a signal, the view will emit a signal too.
     The signal will contain the index and any arguments of the action's signal.
     You can get the action by using :meth:`MenuView.get_action`.
+    See :data:`MenuView.action_triggered`, :data:`MenuView.action_hovered`,
+    :data:`MenuView.action_toggled`.
+
+    .. Note:: At the moment :data:`QtGui.QAction.changed` will not be handled.
+              There currently is a bug in :meth:`MenuView._get_parents`, which
+              causes an infinite loop.
 
     You can set which column to use for each attribute. See :data:`MenuView.text_column`,
     :data:`MenuView.icon_column`, :data:`MenuView.icontext_column`,
@@ -51,14 +57,12 @@ class MenuView(QtGui.QMenu):
     override :meth:`MenuView.create_menu`, :meth:`MenuView.create_action`.
     """
 
-    hovered = QtCore.Signal(QtCore.QModelIndex)
+    action_hovered = QtCore.Signal(QtCore.QModelIndex)
     """Signal for when an action gets hovered"""
-    triggered = QtCore.Signal(QtCore.QModelIndex, bool)
+    action_triggered = QtCore.Signal(QtCore.QModelIndex, bool)
     """Signal for when an action gets triggered"""
-    toggled = QtCore.Signal(QtCore.QModelIndex, bool)
+    action_toggled = QtCore.Signal(QtCore.QModelIndex, bool)
     """Signal for when an action gets toggled"""
-    changed = QtCore.Signal(QtCore.QModelIndex)
-    """Signal for when an action emits the changed signal"""
 
     def __init__(self, title='', parent=None):
         """Initialize a new menu view with the given title
@@ -298,11 +302,10 @@ class MenuView(QtGui.QMenu):
             action = self.create_action(parent)
         parent.insertAction(before, action)
         self.set_action_data(action, index)
-        signalmap = {action.triggered: self.action_triggered,
-                     action.hovered: self.action_hovered,
-                     action.changed: self.action_changed,
-                     action.toggled: self.action_toggled}
-        for signal, callback in signalmap:
+        signalmap = {action.triggered: self._action_triggered,
+                     action.hovered: self._action_hovered,
+                     action.toggled: self._action_toggled}
+        for signal, callback in signalmap.items():
             signal.connect(functools.partial(callback, action))
 
     def create_menu(self, parent):
@@ -420,7 +423,7 @@ class MenuView(QtGui.QMenu):
         menuaction = self.create_menu(parent)
         action.setMenu(menuaction.menu())
 
-    def action_hovered(self, action):
+    def _action_hovered(self, action):
         """Emit the hovered signal
 
         :param action: The action which emitted a hovered signal
@@ -429,9 +432,9 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        self._emit_signal_for_action(self.hovered, action)
+        self._emit_signal_for_action(self.action_hovered, action)
 
-    def action_triggered(self, action, checked=False):
+    def _action_triggered(self, action, checked=False):
         """Emit the triggered signal
 
         :param action: The action which emitted a triggered signal
@@ -442,9 +445,9 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        self._emit_signal_for_action(self.triggered, action, checked)
+        self._emit_signal_for_action(self.action_triggered, action, checked)
 
-    def action_toggled(self, action, checked=False):
+    def _action_toggled(self, action, checked=False):
         """Emit the toggled signal
 
         :param action: The action which emitted a toggled signal
@@ -455,18 +458,7 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        self._emit_signal_for_action(self.toggled, action, checked)
-
-    def action_changed(self, action):
-        """Emit the toggled signal
-
-        :param action: The action which emitted a changed signal
-        :type action: :class:`QtGui.QAction`
-        :returns: None
-        :rtype: None
-        :raises: None
-        """
-        self._emit_signal_for_action(self.changed, action)
+        self._emit_signal_for_action(self.action_toggled, action, checked)
 
     def _emit_signal_for_action(self, signal, action, *args):
         """Emit the given signal for the index of the given action

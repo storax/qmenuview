@@ -103,19 +103,19 @@ def test_menu_action_triggered(qtbot, loadedview):
 
 
 def test_menu_action_hovered(qtbot, loadedview):
-    with qtbot.waitSignal(loadedview.hovered, raising=True):
+    with qtbot.waitSignal(loadedview.action_hovered, raising=True):
         action = loadedview.actions()[0]
         action.hovered.emit()
 
 
 def test_action_triggered(qtbot, loadedview):
-    with qtbot.waitSignal(loadedview.triggered, raising=True):
+    with qtbot.waitSignal(loadedview.action_triggered, raising=True):
         action = loadedview.actions()[0].menu().actions()[0]
         action.triggered.emit()
 
 
 def test_action_hovered(qtbot, loadedview):
-    with qtbot.waitSignal(loadedview.hovered, raising=True):
+    with qtbot.waitSignal(loadedview.action_hovered, raising=True):
         action = loadedview.actions()[0].menu().actions()[0]
         action.hovered.emit()
 
