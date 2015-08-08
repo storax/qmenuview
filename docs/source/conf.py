@@ -2,6 +2,8 @@
 import os
 import sys
 
+import mock
+
 import sphinx_rtd_theme
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
@@ -90,9 +92,7 @@ jinjaapi_outputdir = os.path.abspath(os.path.join(thisdir, 'reference'))
 jinjaapi_nodelete = False
 
 
-class Mock(object):
-    """Mock modules.
-    """
+class Mock(mock.Mock):
 
     @classmethod
     def mock_modules(cls, *modules):
@@ -100,21 +100,32 @@ class Mock(object):
             sys.modules[module] = cls()
 
     def __init__(self, *args, **kwargs):
-        pass
+        super(Mock, self).__init__()
 
     def __call__(self, *args, **kwargs):
-        return self.__class__()
+        return Mock()
 
     def __getattr__(self, attribute):
+        try:
+            attr = super(Mock, self).__getattr__(attribute)
+            if not isinstance(attr, mock.Mock):
+                return attr
+        except AttributeError:
+            pass
         if attribute in ('__file__', '__path__'):
             return os.devnull
         else:
             # return the *class* object here.  Mocked attributes may be used as
-            # base class in pyudev code, thus the returned mock object must
+            # base class in pydev code, thus the returned mock object must
             # behave as class, or else Sphinx autodoc will fail to recognize
             # the mocked base class as such, and "autoclass" will become
             # meaningless
-            return self.__class__()
+            if attribute[0].capitalize() == attribute[0] and\
+               attribute not in ['QtGui', 'QtCore']:
+                cls = Mock
+            else:
+                cls = Mock()
+            return cls
 
 import os
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
