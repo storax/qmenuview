@@ -75,19 +75,19 @@ class MenuView(QtGui.QMenu):
         """
         super(MenuView, self).__init__(title, parent)
         self.text_column = 0
-        """The column for the action text"""
+        """The column for the action text. Default 0"""
         self.icon_column = 0
-        """The column for the action icon"""
+        """The column for the action icon. Default 0"""
         self.icontext_column = -1
-        """The column for the action icon text"""
+        """The column for the action icon text. Default -1"""
         self.tooltip_column = -1
-        """The column for the tooltip data"""
+        """The column for the tooltip data. Default -1"""
         self.checked_column = -1
-        """The column for the checked data. Has to be checkable."""
+        """The column for the checked data. Has to be checkable. Default -1"""
         self.whatsthis_column = -1
-        """The column for the whatsThis text."""
+        """The column for the whatsThis text. Default -1"""
         self.statustip_column = -1
-        """The column for the statustip text."""
+        """The column for the statustip text. Default -1"""
         self._model = None
 
         Qt = QtCore.Qt
