@@ -91,8 +91,6 @@ class MenuView(QtGui.QMenu):
         for i in reversed(parents):
             action = menu.actions()[i.row()]
             menu = action.menu()
-        if not menu:
-            return None
         try:
             return menu.actions()[index.row()]
         except IndexError:
@@ -107,6 +105,8 @@ class MenuView(QtGui.QMenu):
             # So there are no parents
             if parent is self:
                 return []
+            # if the parent is the actions menu, we have to get
+            # the menues parent. Else we get stuck on the same level.
             if parent and parent is a.menu():
                 parent = parent.parent()
             if not isinstance(parent, QtGui.QMenu):
@@ -191,7 +191,7 @@ class MenuView(QtGui.QMenu):
             return
         indizes = self._flatten_hierarchy(m)
         for i in indizes:
-            self._create_menu(i)
+            self.create_menu_for_index(i)
 
     @staticmethod
     def _flatten_hierarchy(model, parent=None):
@@ -210,6 +210,10 @@ class MenuView(QtGui.QMenu):
             parent = QtCore.QModelIndex()
         parents = [parent]
         children = []
+        # for all parents, get the children
+        # during the next iteration, the children become the parents
+        # and are queried for children as well. Once no new children are found
+        # the loop ends
         while parents:
             for parent in parents:
                 for i in range(model.rowCount(parent)):
@@ -220,7 +224,7 @@ class MenuView(QtGui.QMenu):
             children = []
         return indizes
 
-    def _create_menu(self, index):
+    def create_menu_for_index(self, index):
         m = self._model
         parentaction = self.get_action(index.parent())
         # Action has no menu yet. In order to create a sub action,
@@ -231,14 +235,40 @@ class MenuView(QtGui.QMenu):
         beforeindex = index.sibling(index.row(), 0)
         before = self.get_action(beforeindex)
         if m.hasChildren(index):
-            menu = QtGui.QMenu(parent=parent)
-            action = parent.insertMenu(before, menu)
+            action = self.create_menu(parent)
         else:
-            action = QtGui.QAction(parent)
-            parent.insertAction(before, action)
+            action = self.create_action(parent)
+        parent.insertAction(before, action)
         self.set_action_data(action, index)
         action.triggered.connect(functools.partial(self.action_triggered, action))
         action.hovered.connect(functools.partial(self.action_hovered, action))
+
+    def create_menu(self, parent):
+        """Create a menu and return the menus action.
+
+        The parent of the menu has to be set to ``parent``
+
+        :param parent: The parent menu
+        :type parent: :class:`QtGui.QMenu`
+        :returns: The menu action
+        :rtype: :class:`QtGui.QAction`
+        :raises: None
+        """
+        menu = QtGui.QMenu(parent=parent)
+        return menu.menuAction()
+
+    def create_action(self, parent):
+        """Create and return a new action
+
+        The parent of the action has to be set to ``parent``
+
+        :param parent: The parent menu
+        :type parent: :class:`QtGui.QMenu`
+        :returns: The created action
+        :rtype: :class:`QtGui.QAction`
+        :raises: None
+        """
+        return QtGui.QAction(parent)
 
     def set_action_data(self, action, index):
         """Set the data of the action for the given index
@@ -286,7 +316,7 @@ class MenuView(QtGui.QMenu):
             action.setChecked(checked == QtCore.Qt.Checked)
         if whatsthisdata:
             action.setWhatsThis(whatsthis)
-        if statustip:
+        if statustipdata:
             action.setStatusTip(statustip)
 
     def _convert_action_to_menu(self, action):
@@ -351,7 +381,7 @@ class MenuView(QtGui.QMenu):
             flattened = [index]
             flattened.extend(self._flatten_hierarchy(self._model, index))
             for newi in flattened:
-                self._create_menu(newi)
+                self.create_menu_for_index(newi)
 
     def remove_menus(self, parent, first, last):
         """Remove the menus under the given parent
@@ -372,6 +402,7 @@ class MenuView(QtGui.QMenu):
             index = self._model.index(i, 0, parent)
             action = self.get_action(index)
             parentmenu.removeAction(action)
+        # menu has no childs, only display the action
         if not parentmenu.actions():
             parentaction.setMenu(None)
 
