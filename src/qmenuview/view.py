@@ -32,7 +32,7 @@ class MenuView(QtGui.QMenu):
     So the view is quite dynamic. If all child rows of an index are removed,
     the menu gets removed from the action. If rows are inserted to a parent index,
     which had no children, the action will get a menu.
-n
+
     If an action emits a signal, the view will emit a signal too.
     The signal will contain the index and any arguments of the action's signal.
     You can get the action by using :meth:`MenuView.get_action`.
