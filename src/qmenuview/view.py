@@ -24,10 +24,10 @@ class MenuView(QtGui.QMenu):
 
     The view listens to the following signals:
 
-      - :data:`QtCore.QAbstractItemModel.modelReset`
-      - :data:`QtCore.QAbstractItemModel.rowsInserted`
-      - :data:`QtCore.QAbstractItemModel.rowsAboutToBeRemoved`
-      - :data:`QtCore.QAbstractItemModel.dataChanged`
+      - :data:`PySide.QtCore.QAbstractItemModel.modelReset`
+      - :data:`PySide.QtCore.QAbstractItemModel.rowsInserted`
+      - :data:`PySide.QtCore.QAbstractItemModel.rowsAboutToBeRemoved`
+      - :data:`PySide.QtCore.QAbstractItemModel.dataChanged`
 
     So the view is quite dynamic. If all child rows of an index are removed,
     the menu gets removed from the action. If rows are inserted to a parent index,
@@ -39,7 +39,7 @@ class MenuView(QtGui.QMenu):
     See :data:`MenuView.action_triggered`, :data:`MenuView.action_hovered`,
     :data:`MenuView.action_toggled`.
 
-    .. Note:: At the moment :data:`QtGui.QAction.changed` will not be handled.
+    .. Note:: At the moment :data:`PySide.QtGui.QAction.changed` will not be handled.
               There currently is a bug in :meth:`MenuView._get_parents`, which
               causes an infinite loop.
 
@@ -51,7 +51,7 @@ class MenuView(QtGui.QMenu):
     For more control on how the data gets applied to the action, change
     :data:`MenuView.setdataargs`. It is a list of :class:`SetDataArgs` containers.
     One container defines the functionname to use for setting the attribute,
-    the column to use, the :data:`QtCore.Qt.ItemDataRole`, and a data conversion function.
+    the column to use, the :data:`PySide.QtCore.Qt.ItemDataRole`, and a data conversion function.
 
     If you want custom menu and action classes,
     override :meth:`MenuView.create_menu`, :meth:`MenuView.create_action`.
@@ -70,7 +70,7 @@ class MenuView(QtGui.QMenu):
         :param title: title of the top menu
         :type title: :class:`str`
         :param parent: the parent widget
-        :type parent: :class:`QtGui.QWidget`
+        :type parent: :class:`PySide.QtGui.QWidget`
         :raises: None
         """
         super(MenuView, self).__init__(title, parent)
@@ -107,7 +107,7 @@ class MenuView(QtGui.QMenu):
         """Get the model
 
         :returns: the current model
-        :rtype: :class:`QtCore.QAbstractItemModel`
+        :rtype: :class:`PySide.QtCore.QAbstractItemModel`
         :raises: None
         """
         return self._model
@@ -117,7 +117,7 @@ class MenuView(QtGui.QMenu):
         """Set the model
 
         :param model: the model to set
-        :type model: :class:`QtCore.QAbstractItemModel`
+        :type model: :class:`PySide.QtCore.QAbstractItemModel`
         :returns: None
         :rtype: None
         :raises: None
@@ -164,11 +164,11 @@ class MenuView(QtGui.QMenu):
         """Return a level-order list of indizes
 
         :param model: the model to traverse
-        :type model: :class:`QtCore.QAbstractItemModel`
+        :type model: :class:`PySide.QtCore.QAbstractItemModel`
         :param parent: the parent index. Default is the root.
-        :type parent: :class:`QtCore.QModelIndex`
+        :type parent: :class:`PySide.QtCore.QModelIndex`
         :returns: a level-order list of indizes
-        :rtype: :class:`list` of :class:`QtCore.QModelIndex`
+        :rtype: :class:`list` of :class:`PySide.QtCore.QModelIndex`
         :raises: None
         """
         indizes = []
@@ -223,9 +223,9 @@ class MenuView(QtGui.QMenu):
         The parent of the menu has to be set to ``parent``
 
         :param parent: The parent menu
-        :type parent: :class:`QtGui.QMenu`
+        :type parent: :class:`PySide.QtGui.QMenu`
         :returns: The menu action
-        :rtype: :class:`QtGui.QAction`
+        :rtype: :class:`PySide.QtGui.QAction`
         :raises: None
         """
         menu = QtGui.QMenu(parent=parent)
@@ -237,9 +237,9 @@ class MenuView(QtGui.QMenu):
         The parent of the action has to be set to ``parent``
 
         :param parent: The parent menu
-        :type parent: :class:`QtGui.QMenu`
+        :type parent: :class:`PySide.QtGui.QMenu`
         :returns: The created action
-        :rtype: :class:`QtGui.QAction`
+        :rtype: :class:`PySide.QtGui.QAction`
         :raises: None
         """
         return QtGui.QAction(parent)
@@ -248,7 +248,7 @@ class MenuView(QtGui.QMenu):
         """Create menus for rows first til last under the given parent
 
         :param parent: The parent index
-        :type parent: :class:`QtCore.QModelIndex`
+        :type parent: :class:`PySide.QtCore.QModelIndex`
         :param first: the first row
         :type first: :class:`int`
         :param last: the last row
@@ -268,7 +268,7 @@ class MenuView(QtGui.QMenu):
         """Remove the menus under the given parent
 
         :param parent: the parent of the menus
-        :type parent: :class:`QtCore.QModelIndex`
+        :type parent: :class:`PySide.QtCore.QModelIndex`
         :param first: the first row
         :type first: :class:`int`
         :param last: the last row
@@ -291,9 +291,9 @@ class MenuView(QtGui.QMenu):
         """Update the menus from topleft index to bottomright index
 
         :param topLeft: The top left index to update
-        :type topLeft: :class:`QtCore.QModelIndex`
+        :type topLeft: :class:`PySide.QtCore.QModelIndex`
         :param bottomRight: the bottom right index to update
-        :type bottomRight: :class:`QtCore.QModelIndex`
+        :type bottomRight: :class:`PySide.QtCore.QModelIndex`
         :returns: None
         :rtype: None
         :raises: None
@@ -312,11 +312,11 @@ class MenuView(QtGui.QMenu):
         """Return the index for the given action
 
         :param action: the action to query
-        :type action: :class:`QtGui.QAction`
+        :type action: :class:`PySide.QtGui.QAction`
         :param column: The column of the index
         :type column: :class:`int`
         :returns: the index of the action
-        :rtype: :class:`QtCore.QModelIndex`
+        :rtype: :class:`PySide.QtCore.QModelIndex`
         :rasies: None
         """
         if action == self.menuAction():
@@ -374,9 +374,9 @@ class MenuView(QtGui.QMenu):
         """Return the action for the given index
 
         :param index: the index to query
-        :type index: :class:`QtCore.QModelIndex`
+        :type index: :class:`PySide.QtCore.QModelIndex`
         :returns: the action for the given index
-        :rtype: :class:`QtGui.QAction`
+        :rtype: :class:`PySide.QtGui.QAction`
         :raises: None
         """
         if not index.isValid():
@@ -413,9 +413,9 @@ class MenuView(QtGui.QMenu):
         The arguments to used are defined in :data:`MenuView.setdataargs`.
 
         :param action: The action to update
-        :type action: :class:`QtGui.QAction`
+        :type action: :class:`PySide.QtGui.QAction`
         :param index: The index with the data
-        :type index: :class:`QtCore.QModelIndex`
+        :type index: :class:`PySide.QtCore.QModelIndex`
         :returns: None
         :rtype: None
         :raises: None
@@ -429,9 +429,9 @@ class MenuView(QtGui.QMenu):
         """Enable the action , depending on the item flags
 
         :param action: The action to update
-        :type action: :class:`QtGui.QAction`
+        :type action: :class:`PySide.QtGui.QAction`
         :param index: the model index with the item flags
-        :type index: :class:`QtCore.QModelIndex`
+        :type index: :class:`PySide.QtCore.QModelIndex`
         :returns: None
         :rtype: None
         :raises: None
@@ -445,9 +445,9 @@ class MenuView(QtGui.QMenu):
                   is specified in :data:`MenuView.checked_column`.
 
         :param action: The action to update
-        :type action: :class:`QtGui.QAction`
+        :type action: :class:`PySide.QtGui.QAction`
         :param index: the model index with the item flags
-        :type index: :class:`QtCore.QModelIndex`
+        :type index: :class:`PySide.QtCore.QModelIndex`
         :returns: None
         :rtype: None
         :raises: None
@@ -465,9 +465,9 @@ class MenuView(QtGui.QMenu):
         The data will be converted with ``setdataarg.convertfunc``.
 
         :param action: the action to update
-        :type action: :class:`QtGui.QAction`
+        :type action: :class:`PySide.QtGui.QAction`
         :param index: the index with the data
-        :type index: :class:`QtCore.QModelIndex`
+        :type index: :class:`PySide.QtCore.QModelIndex`
         :param setdataarg: The container with arguments that define the way the data is applied
         :type setdataarg: :class:`SetDataArgs`
         :returns: None
@@ -491,9 +491,9 @@ class MenuView(QtGui.QMenu):
         index with the same row.
 
         :param index: The index to query for data
-        :type index: :class:`QtCore.QModelIndex`
+        :type index: :class:`PySide.QtCore.QModelIndex`
         :param role: the data role
-        :type role: :data:`QtCore.Qt.ItemDataRole`
+        :type role: :data:`PySide.QtCore.Qt.ItemDataRole`
         :param column: the column of the row to query for data.
         :type column: :class:`int` | None
         :returns: The data retrieved
@@ -508,7 +508,7 @@ class MenuView(QtGui.QMenu):
         """Emit the hovered signal
 
         :param action: The action which emitted a hovered signal
-        :type action: :class:`QtGui.QAction`
+        :type action: :class:`PySide.QtGui.QAction`
         :returns: None
         :rtype: None
         :raises: None
@@ -519,7 +519,7 @@ class MenuView(QtGui.QMenu):
         """Emit the triggered signal
 
         :param action: The action which emitted a triggered signal
-        :type action: :class:`QtGui.QAction`
+        :type action: :class:`PySide.QtGui.QAction`
         :param checked: True if the action was in a checked state
         :type checked: :class:`bool`
         :returns: None
@@ -532,7 +532,7 @@ class MenuView(QtGui.QMenu):
         """Emit the toggled signal
 
         :param action: The action which emitted a toggled signal
-        :type action: :class:`QtGui.QAction`
+        :type action: :class:`PySide.QtGui.QAction`
         :param checked: True if the action was in a checked state
         :type checked: :class:`bool`
         :returns: None
@@ -545,9 +545,9 @@ class MenuView(QtGui.QMenu):
         """Emit the given signal for the index of the given action
 
         :param signal: The signal to emit
-        :type signal: :class:`QtCore.Signal`
+        :type signal: :class:`PySide.QtCore.Signal`
         :param action: The action for which to emit the signal
-        :type action: :class:`QtGui.QAction`
+        :type action: :class:`PySide.QtGui.QAction`
         :returns: None
         :rtype: None
         :raises: None
@@ -558,12 +558,12 @@ class MenuView(QtGui.QMenu):
 
     @staticmethod
     def _process_icondata(icondata):
-        """Return an icon for the data of the :data:`QtCore.Qt.DecorationRole`
+        """Return an icon for the data of the :data:`PySide.QtCore.Qt.DecorationRole`
 
-        :param icondata: The data from the :data:`QtCore.Qt.DecorationRole`
-        :type icondata: :class:`QtGui.QIcon` | :class:`QtGui.QPixmap`
+        :param icondata: The data from the :data:`PySide.QtCore.Qt.DecorationRole`
+        :type icondata: :class:`PySide.QtGui.QIcon` | :class:`PySide.QtGui.QPixmap`
         :returns: A Icon based on the data.
-        :rtype: :class:`QtGui.QIcon`
+        :rtype: :class:`PySide.QtGui.QIcon`
         :raises: None
         """
         if isinstance(icondata, QtGui.QIcon):
