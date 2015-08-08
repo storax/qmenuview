@@ -3,7 +3,7 @@ import collections
 
 from PySide import QtCore, QtGui
 
-__all__ = ['MenuView']
+__all__ = ['MenuView', 'SetDataArgs']
 
 
 SetDataArgs = collections.namedtuple('SetDataArgs', ['setfunc', 'column', 'role', 'convertfunc'])
