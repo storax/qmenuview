@@ -2,6 +2,8 @@
 import os
 import sys
 
+import mock
+
 import sphinx_rtd_theme
 
 thisdir = os.path.abspath(os.path.dirname(__file__))
@@ -78,12 +80,57 @@ autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance']
 
 
 # -- Intersphinx Config ---------------------------------------------------
-intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None)}
+intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None),
+                       'pyside': ('https://deptinfo-ensip.univ-poitiers.fr/ENS/pyside-docs/', None)}
 
 autosummary_generate = True
 
 # -- Jinjaapidoc Config ---------------------------------------------------
 
 jinjaapi_srcdir = os.path.abspath(os.path.join(thisdir, '..', '..', 'src'))
-jinjaapi_outputdir = os.path.abspath(os.path.join(thisdir, 'source', 'reference'))
+jinjaapi_outputdir = os.path.abspath(os.path.join(thisdir, 'reference'))
 jinjaapi_nodelete = False
+jinjaapi_addsummarytemplate = False
+
+
+class Mock(mock.Mock):
+
+    @classmethod
+    def mock_modules(cls, *modules):
+        for module in modules:
+            sys.modules[module] = cls()
+
+    def __init__(self, *args, **kwargs):
+        super(Mock, self).__init__()
+
+    def __call__(self, *args, **kwargs):
+        return Mock()
+
+    def __getattr__(self, attribute):
+        try:
+            attr = super(Mock, self).__getattr__(attribute)
+            if not isinstance(attr, mock.Mock):
+                return attr
+        except AttributeError:
+            pass
+        if attribute in ('__file__', '__path__'):
+            return os.devnull
+        else:
+            # return the *class* object here.  Mocked attributes may be used as
+            # base class in pydev code, thus the returned mock object must
+            # behave as class, or else Sphinx autodoc will fail to recognize
+            # the mocked base class as such, and "autoclass" will become
+            # meaningless
+            if attribute[0].capitalize() == attribute[0] and\
+               attribute not in ['QtGui', 'QtCore']:
+                cls = Mock
+            else:
+                cls = Mock()
+            return cls
+
+import os
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd:
+    # mock out native modules used throughout pyudev to enable Sphinx autodoc even
+    # if these modules are unavailable, as on readthedocs.org
+    Mock.mock_modules('PySide', 'PySide.QtCore', 'PySide.QtGui',)

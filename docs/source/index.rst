@@ -16,8 +16,6 @@ Contents:
 
    installation
    usage
-   userdoc/index
-   devdoc/index
    reference
    contributing
    authors

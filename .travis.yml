@@ -7,10 +7,12 @@ env:
     LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
   matrix:
     - TOXENV=check
-{% for env, config in tox_environments|dictsort %}
-    - TOXENV={{ env }}{% if config.cover %},coveralls{% endif %}
-
-{% endfor %}
+    - TOXENV=2.7,coveralls
+    - TOXENV=2.7-nocover
+    - TOXENV=3.3,coveralls
+    - TOXENV=3.3-nocover
+    - TOXENV=3.4,coveralls
+    - TOXENV=3.4-nocover
 addons:
   apt:
     packages:
