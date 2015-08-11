@@ -284,3 +284,11 @@ def test_update_menu_text(loadedview, treemodel):
     teststring = "Thanks for the fish!"
     treemodel.setData(treemodel.index(2, 0), teststring)
     assert loadedview.actions()[2].text() == teststring
+
+
+def test_change_column(loadedview, treemodel):
+    loadedview.text_column = 1
+    i = treemodel.index(0, 1)
+    txt = 'TEST'
+    treemodel.setData(i, txt)
+    assert loadedview.actions()[0].text() == txt
