@@ -42,7 +42,7 @@ tests_require = ['tox']
 
 setup(
     name='qmenuview',
-    version='0.1.1',
+    version='0.1.2',
     description='PySide view for menues',
     long_description=long_description,
     author='David Zuber',
