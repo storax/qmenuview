@@ -7,3 +7,9 @@ History
 +++++++++++++++++++++++++++++++++++++++
 
 * First release on PyPI.
+
+0.1.1 (2015-08-11)
++++++++++++++++++++++++++++++++++++++++
+
+* Fix getting parents of action
+* Fix changing columns
