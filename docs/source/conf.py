@@ -35,8 +35,8 @@ master_doc = 'index'
 project = u'Pyside QMenuView'
 copyright = u'2015, David Zuber'
 
-version = '0.1.3'
-release = '0.1.3'
+version = '0.1.4'
+release = '0.1.4'
 
 exclude_patterns = ['_build']
 

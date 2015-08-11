@@ -31,6 +31,9 @@ notifications:
   email:
     on_success: never
     on_failure: never
+before_deploy:
+  - pip install twine
+  - pip install wheel
 deploy:
   provider: pypi
   user: storax
