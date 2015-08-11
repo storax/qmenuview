@@ -274,7 +274,7 @@ class MenuView(QtGui.QMenu):
             action = self.get_action(index)
             parentmenu.removeAction(action)
         # menu has no childs, only display the action
-        if not parentmenu.actions():
+        if not parentmenu.actions() and parentmenu is not self:
             parentaction.setMenu(None)
 
     def update_menus(self, topLeft, bottomRight):
