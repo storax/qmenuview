@@ -543,7 +543,6 @@ class MenuView(QtGui.QMenu):
         :raises: None
         """
         index = self.get_index(action)
-        if action.text() == 'medium' and signal == self.action_triggered:
         if index and index.isValid():
             signal.emit(index, *args)
 
