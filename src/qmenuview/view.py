@@ -334,7 +334,6 @@ class MenuView(QtGui.QMenu):
         return index
 
     def _get_parents(self, action):
-        print("action", action)
         parents = []
         a = action
         while True:
@@ -346,7 +345,6 @@ class MenuView(QtGui.QMenu):
             if not isinstance(parent, QtGui.QMenu):
                 # Is not part of the tree. Parent is not a menu but
                 # might be None or another Widget
-                print("not menu, break", parent)
                 return []
             # break if parent is root because we got all parents we need
             if parent is self:
@@ -356,7 +354,6 @@ class MenuView(QtGui.QMenu):
             parent = parent.menuAction()
             a = parent
             parents.append(parent)
-            print("append", parent)
         return parents
 
     def get_action(self, index):
@@ -519,7 +516,6 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        print('action', action.text())
         self._emit_signal_for_action(self.action_triggered, action, checked)
 
     def _action_toggled(self, action, checked=False):
@@ -548,8 +544,6 @@ class MenuView(QtGui.QMenu):
         """
         index = self.get_index(action)
         if action.text() == 'medium' and signal == self.action_triggered:
-            print("OOOOOhh", action)
-            print(index, index.parent(), index.parent().parent())
         if index and index.isValid():
             signal.emit(index, *args)
 
