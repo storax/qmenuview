@@ -25,7 +25,10 @@ def treemodel():
         iconitem = QtGui.QStandardItem(QtGui.QIcon(), "iconitem")
         m.appendRow([textitem, iconitem])
         for j in range(10):
-            textitem.appendRow(QtGui.QStandardItem("testrow%s:%s" % (i, j)))
+            item = QtGui.QStandardItem("testrow%s:%s" % (i, j))
+            textitem.appendRow(item)
+            for k in range(5):
+                item.appendRow(QtGui.QStandardItem("testrow%s:%s:%s" % (i, j, k)))
     return m
 
 
@@ -125,10 +128,10 @@ def test_insert_menus(treemodel):
     mv.model = treemodel
     item = QtGui.QStandardItem("newitem1")
     item.appendRow(QtGui.QStandardItem("newitem2"))
-    parentindex = treemodel.index(2, 0, treemodel.index(2, 0))
+    parentindex = treemodel.index(0, 0, treemodel.index(2, 0, treemodel.index(2, 0)))
     parent = treemodel.itemFromIndex(parentindex)
     parent.appendRow(item)
-    parentmenu = mv.actions()[2].menu().actions()[2].menu()
+    parentmenu = mv.actions()[2].menu().actions()[2].menu().actions()[0].menu()
     assert parentmenu,\
         "The parent action was not converted to a menu"
     newaction = parentmenu.actions()[0]
@@ -162,6 +165,14 @@ def test_get_parent_indizes_second_level(loadedview, treemodel):
         "There should be one parent!"
 
 
+def test_get_parent_indizes_third_level(loadedview, treemodel):
+    p1 = treemodel.index(0, 0)
+    p2 = treemodel.index(0, 0, p1)
+    parents = loadedview._get_parent_indizes(treemodel.index(0, 0, p2))
+    assert parents == [p2, p1],\
+        "There should be two parents!"
+
+
 def test_get_action_invalid(loadedview):
     action = loadedview.get_action(QtCore.QModelIndex())
     assert action is loadedview.menuAction(),\
@@ -176,6 +187,12 @@ def test_get_action_first_level(loadedview, treemodel):
 def test_get_action_second_level(loadedview, treemodel):
     action = loadedview.get_action(treemodel.index(9, 0, treemodel.index(9, 0)))
     assert action is loadedview.actions()[9].parentWidget().actions()[9]
+
+
+def test_get_action_third_level(loadedview, treemodel):
+    action = loadedview.get_action(
+        treemodel.index(0, 0, treemodel.index(2, 0, treemodel.index(9, 0))))
+    assert action is loadedview.actions()[9].parentWidget().actions()[2].parentWidget().actions()[0]
 
 
 def test_get_parents_invalid(loadedview):
@@ -207,6 +224,16 @@ def test_get_parents_second_level(loadedview):
     parents = loadedview._get_parents(action)
     assert parents == [p1],\
         "Second level actions only have the first level action as parent!"
+
+
+def test_get_parents_third_level(loadedview):
+    p1 = loadedview.actions()[4]
+    p1.setParent(loadedview)
+    p2 = p1.menu().actions()[5]
+    action = p2.menu().actions()[2]
+    parents = loadedview._get_parents(action)
+    assert parents == [p2, p1],\
+        "Third level actions have two actions as parent!"
 
 
 def test_get_index_self(loadedview):
