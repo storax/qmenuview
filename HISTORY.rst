@@ -12,3 +12,4 @@ History
 +++++++++++++++++++++++++++++++++++++++
 
 * Fix getting parents of action
+* Fix changing columns
