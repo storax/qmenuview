@@ -292,3 +292,18 @@ def test_change_column(loadedview, treemodel):
     txt = 'TEST'
     treemodel.setData(i, txt)
     assert loadedview.actions()[0].text() == txt
+
+
+def test_remove_all_then_insert(model):
+    # this test can fail, if you remove all rows,
+    # then remove the menu from the parent action.
+    # If the menu is the menuview itself, then
+    # it will never be reparented!
+    # thus resulting in a wierd error
+    mv = qmenuview.MenuView()
+    mv.model = model
+    for i in reversed(range(model.rowCount())):
+        model.removeRow(i)
+    item = QtGui.QStandardItem("testrow1")
+    item.appendRow(QtGui.QStandardItem("testrow2"))
+    model.appendRow(item)
