@@ -1,18 +1,8 @@
 import functools
-import collections
 
 from PySide import QtCore, QtGui
 
 __all__ = ['MenuView', 'SetDataArgs']
-
-
-SetDataArgs = collections.namedtuple('SetDataArgs', ['setfunc', 'column', 'role', 'convertfunc'])
-"""A tuple containing arguments for setting attributes on an action.
-
-The data is queried from the model with ``role``. Then converted with ``convertfunc``.
-Then ``setfunc`` is used for setting the attribute on the action.
-``convertfunc`` can be ``None``.
-"""
 
 
 class MenuView(QtGui.QMenu):
@@ -80,24 +70,24 @@ class MenuView(QtGui.QMenu):
         """The column for the action icon. Default 0"""
         self.icontext_column = -1
         """The column for the action icon text. Default -1"""
-        self.tooltip_column = -1
-        """The column for the tooltip data. Default -1"""
-        self.checked_column = -1
-        """The column for the checked data. Has to be checkable. Default -1"""
-        self.whatsthis_column = -1
-        """The column for the whatsThis text. Default -1"""
-        self.statustip_column = -1
-        """The column for the statustip text. Default -1"""
+        self.tooltip_column = 0
+        """The column for the tooltip data. Default 0"""
+        self.checked_column = 0
+        """The column for the checked data. Has to be checkable. Default 0"""
+        self.whatsthis_column = 0
+        """The column for the whatsThis text. Default 0"""
+        self.statustip_column = 0
+        """The column for the statustip text. Default 0"""
         self._model = None
 
         Qt = QtCore.Qt
-        args = [SetDataArgs('setText', self.text_column, Qt.DisplayRole, str),
-                SetDataArgs('setIcon', self.icon_column, Qt.DecorationRole, self._process_icondata),
-                SetDataArgs('setIconText', self.icontext_column, Qt.DisplayRole, str),
-                SetDataArgs('setToolTip', self.tooltip_column, Qt.ToolTipRole, str),
-                SetDataArgs('setChecked', self.checked_column, Qt.CheckStateRole, self._checkconvertfunc),
-                SetDataArgs('setWhatsThis', self.whatsthis_column, Qt.WhatsThisRole, str),
-                SetDataArgs('setStatusTip', self.statustip_column, Qt.StatusTipRole, str)]
+        args = [SetDataArgs('setText', 'text_column', Qt.DisplayRole, str),
+                SetDataArgs('setIcon', 'icon_column', Qt.DecorationRole, self._process_icondata),
+                SetDataArgs('setIconText', 'icontext_column', Qt.DisplayRole, str),
+                SetDataArgs('setToolTip', 'tooltip_column', Qt.ToolTipRole, str),
+                SetDataArgs('setChecked', 'checked_column', Qt.CheckStateRole, self._checkconvertfunc),
+                SetDataArgs('setWhatsThis', 'whatsthis_column', Qt.WhatsThisRole, str),
+                SetDataArgs('setStatusTip', 'statustip_column', Qt.StatusTipRole, str)]
         self.setdataargs = args
         """A list of :class:`SetDataArgs` containers. Defines how the
         data from the model is applied to the action"""
@@ -344,14 +334,11 @@ class MenuView(QtGui.QMenu):
         return index
 
     def _get_parents(self, action):
+        print("action", action)
         parents = []
         a = action
         while True:
             parent = a.parent()
-            # If parent is self, then the action is the views menuAction
-            # So there are no parents
-            if parent is self:
-                return []
             # if the parent is the actions menu, we have to get
             # the menues parent. Else we get stuck on the same level.
             if parent and parent is a.menu():
@@ -359,6 +346,7 @@ class MenuView(QtGui.QMenu):
             if not isinstance(parent, QtGui.QMenu):
                 # Is not part of the tree. Parent is not a menu but
                 # might be None or another Widget
+                print("not menu, break", parent)
                 return []
             # break if parent is root because we got all parents we need
             if parent is self:
@@ -368,6 +356,7 @@ class MenuView(QtGui.QMenu):
             parent = parent.menuAction()
             a = parent
             parents.append(parent)
+            print("append", parent)
         return parents
 
     def get_action(self, index):
@@ -474,7 +463,11 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
-        data = self.get_data(index, setdataarg.role, setdataarg.column)
+        if isinstance(setdataarg.column, int):
+            column = setdataarg.column
+        else:
+            column = getattr(self, setdataarg.column)
+        data = self.get_data(index, setdataarg.role, column)
         if data is None:
             return
         setattrmethod = getattr(action, setdataarg.setfunc)
@@ -526,6 +519,7 @@ class MenuView(QtGui.QMenu):
         :rtype: None
         :raises: None
         """
+        print('action', action.text())
         self._emit_signal_for_action(self.action_triggered, action, checked)
 
     def _action_toggled(self, action, checked=False):
@@ -553,6 +547,9 @@ class MenuView(QtGui.QMenu):
         :raises: None
         """
         index = self.get_index(action)
+        if action.text() == 'medium' and signal == self.action_triggered:
+            print("OOOOOhh", action)
+            print(index, index.parent(), index.parent().parent())
         if index and index.isValid():
             signal.emit(index, *args)
 
@@ -575,3 +572,25 @@ class MenuView(QtGui.QMenu):
     def _checkconvertfunc(data):
         checkedstate = int(data) if data is not None else 0
         return checkedstate == QtCore.Qt.Checked
+
+
+class SetDataArgs(object):
+    """A container of arguments for setting attributes on an action.
+
+    The data is queried from the model with ``role``. Then converted with ``convertfunc``.
+    Then ``setfunc`` is used for setting the attribute on the action.
+    ``convertfunc`` can be ``None``.
+
+    If column is a string, the attribute of the view with that name will be used as column.
+    """
+
+    def __init__(self, setfunc, column, role, convertfunc):
+        """Initialize a new container
+
+        :raises: None
+        """
+        super(SetDataArgs, self).__init__()
+        self.setfunc = setfunc
+        self.column = column
+        self.role = role
+        self.convertfunc = convertfunc
